@@ -816,6 +816,16 @@ const renderKPIs = () => {
           </div>
         </div>
 
+         <div className="field">
+            <label htmlFor="severity">Severity</label>
+            <Dropdown
+              value={editIssue.severity}
+              options={severityOptions}
+              onChange={(e) => setEditIssue({ ...editIssue, severity: e.value })}
+              placeholder="Select Severity"
+            />
+          </div>
+
         <div className="formgrid grid">
           <div className="field col">
             <label htmlFor="started_by">Started By</label>
