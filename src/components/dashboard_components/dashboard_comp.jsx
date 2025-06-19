@@ -387,7 +387,7 @@ const renderKPIs = () => {
   const inprogress = issues.filter(i => i.status === "in-progress").length;
   const resolved = issues.filter(i => i.status === "resolved").length;
   const unresolved = issues.filter(i => i.status === "unresolved").length;
-  const critical = issues.filter(i => i.severety === "critical").length;
+  const critical = issues.filter(i => i.severity === "critical").length;
 
   const kpis = [
     { label: "Total Issues", value: total, icon: <PiClipboardTextFill className="text-blue-500 text-3xl" />, bg: "bg-blue-50" },
