@@ -28,7 +28,7 @@ const DashboardComp = () => {
   const [issues, setIssues] = useState([]);
   const [filters, setFilters] = useState({ status: null, priority: null, keyword: "" });
   const [issueDialog, setIssueDialog] = useState(false);
-  const [newIssue, setNewIssue] = useState({ description: "", status: "open", priority: "low", severity: "not important", assigned_to: user.name, started_by: user.name, petitioner_name: "", contact_type: "email", contact_value: "", related_to_indicators: "no", indicator_code: "", organizations_id: null, startDate: null, endDate: null, user_id: user.id, category_id: null, solution_id: null }); // prefill with same structure as editIssue
+  const [newIssue, setNewIssue] = useState({ description: "", status: "open", priority: "low", severity: "not important", assigned_to: user?.name, started_by: user?.name, petitioner_name: "", contact_type: "email", contact_value: "", related_to_indicators: "no", indicator_code: "", organizations_id: null, startDate: null, endDate: null, user_id: user?.id, category_id: null, solution_id: null }); // prefill with same structure as editIssue
   const [loading, setLoading] = useState(true);
   const [editDialogVisible, setEditDialogVisible] = useState(false);
   const [currentIssueId, setCurrentIssueId] = useState(null);
@@ -627,9 +627,9 @@ const renderKPIs = () => {
             <label htmlFor="started_by">Started By</label>
             <InputText
               id="started_by"
-              value={user.name}
+              value={user?.name}
               onChange={(e) =>
-                setNewIssue({ ...newIssue, started_by: user.name })
+                setNewIssue({ ...newIssue, started_by: user?.name })
               }
               disabled
             />
@@ -820,9 +820,9 @@ const renderKPIs = () => {
           <div className="field col">
             <label htmlFor="started_by">Started By</label>
             <InputText
-              value={user.name}
+              value={user?.name}
               onChange={() =>
-                setEditIssue({ ...editIssue, started_by: user.name })
+                setEditIssue({ ...editIssue, started_by: user?.name })
               }
               disabled
             />
