@@ -942,7 +942,7 @@ const renderKPIs = () => {
           <label htmlFor="startDate">Started Date</label>
           <Calendar
             id="startDate"
-            value={editIssue.startDate}
+            value={editIssue.startDate ? new Date(editIssue.startDate) : null}
             onChange={(e) =>
               setEditIssue({ ...editIssue, startDate: e.value })
             }
@@ -954,7 +954,7 @@ const renderKPIs = () => {
           <label htmlFor="endDate">End Date</label>
           <Calendar
             id="endDate"
-            value={editIssue.endDate}
+            value={editIssue.endDate ? new Date(editIssue.endDate): null}
             onChange={(e) =>
               setEditIssue({ ...editIssue, endDate: e.value })
             }
