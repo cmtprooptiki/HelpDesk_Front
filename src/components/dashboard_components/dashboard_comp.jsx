@@ -17,6 +17,11 @@ import { Link } from "react-router-dom";
 import { MultiSelect } from "primereact/multiselect";
 import { Calendar } from "primereact/calendar";
 
+import { Card } from "primereact/card";
+import { PiWarningCircleFill, PiCheckCircleFill, PiTimerFill, PiClipboardTextFill } from "react-icons/pi";
+import {BsXCircleFill} from "react-icons/bs"
+
+
 const DashboardComp = () => {
       const {user} =useSelector((state)=>state.auth)
 
@@ -375,6 +380,45 @@ const priorityTemplate = (rowData) => (
   />
 );
 
+
+const renderKPIs = () => {
+  const total = issues.length;
+  const open = issues.filter(i => i.status === "open").length;
+  const inprogress = issues.filter(i => i.status === "in-progress").length;
+  const resolved = issues.filter(i => i.status === "resolved").length;
+  const unresolved = issues.filter(i => i.status === "unresolved").length;
+  const critical = issues.filter(i => i.severety === "critical").length;
+
+  const kpis = [
+    { label: "Total Issues", value: total, icon: <PiClipboardTextFill className="text-blue-500 text-3xl" />, bg: "bg-blue-50" },
+    { label: "Open", value: open, icon: <PiTimerFill className="text-yellow-500 text-3xl" />, bg: "bg-yellow-50" },
+
+    { label: "In Progress", value: inprogress, icon: <PiTimerFill className="text-purple-500 text-3xl" />, bg: "bg-yellow-50" },
+    { label: "Resolved", value: resolved, icon: <PiCheckCircleFill className="text-green-500 text-3xl" />, bg: "bg-green-50" },
+   { label: "Unresolved", value: unresolved, icon: <BsXCircleFill  className="text-red-500 text-3xl" />, bg: "bg-red-50" },
+    { label: "Critical", value: critical, icon: <PiWarningCircleFill className="text-red-500 text-3xl" />, bg: "bg-red-50" }
+  ];
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 my-4">
+      {kpis.map((kpi, idx) => (
+        <Card key={idx} className={`shadow-sm ${kpi.bg}`}>
+          <div className="flex items-center space-x-4">
+            <div>{kpi.icon}</div>
+            <div>
+              <div className="text-xl font-semibold">{kpi.value}</div>
+              <div className="text-sm text-gray-600">{kpi.label}</div>
+            </div>
+          </div>
+        </Card>
+      ))}
+    </div>
+
+    
+  );
+};
+
+
   return (
     <div className="p-4">
       <div className="flex flex-wrap align-items-center justify-content-between mb-3">
@@ -384,7 +428,11 @@ const priorityTemplate = (rowData) => (
           icon="pi pi-plus"
           onClick={() => setIssueDialog(true)}
         />
+
       </div>
+
+      {renderKPIs()}  {/* <-- Add this line here */}
+
       <div className="flex flex-wrap gap-3 mb-3">
         <Dropdown
           value={filters.status}
