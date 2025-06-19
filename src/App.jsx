@@ -12,6 +12,7 @@ import 'primeflex/primeflex.css';
 import { useSelector,useDispatch } from 'react-redux'
 import ProtectedRoute from './components/protected_route.jsx'
 import Organization from './pages/organization_pages/organization.jsx'
+import Category from './pages/category_pages/category.jsx'
 
 
 // 📌 Light Themes
@@ -82,6 +83,7 @@ function App() {
               <Route path="/users/add" element={<ProtectedRoute requiredRole="user"><AddUser/></ProtectedRoute>}></Route>
               <Route path="/users/edit/:id" element={<ProtectedRoute requiredRole="user"><EditUser/></ProtectedRoute>}></Route>
               <Route path = "/organizations" element={<ProtectedRoute requiredRole="user"><Organization/></ProtectedRoute>} ></Route>
+              <Route path = "/categories" element={<ProtectedRoute requiredRole="user"><Category/></ProtectedRoute>} ></Route>
 
             </Routes>
           </BrowserRouter>

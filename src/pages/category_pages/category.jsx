@@ -1,11 +1,12 @@
 import React ,{useEffect} from 'react'
 import Layout from '../Layout'
-import UserList from '../../components/user_components/UserList.jsx'
+import CategoryList from '../../components/category_components/CategoryList.jsx'
 import { useDispatch,useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { getMe } from '../../features/auth_slice.jsx'
 import Navbar from '../../components/navbar.jsx'
-const Users = () => {
+
+const Category = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const {isError,user} = useSelector((state=>state.auth));
@@ -29,10 +30,10 @@ const Users = () => {
     <>
     <Navbar/>
     <Layout>
-        <UserList/>
+        <CategoryList/>
     </Layout>
     </>
   )
 }
 
-export default Users
+export default Category

@@ -15,6 +15,7 @@ import axios from "axios";
 import { useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 import { MultiSelect } from "primereact/multiselect";
+import { Calendar } from "primereact/calendar";
 
 const DashboardComp = () => {
       const {user} =useSelector((state)=>state.auth)
@@ -22,13 +23,40 @@ const DashboardComp = () => {
   const [issues, setIssues] = useState([]);
   const [filters, setFilters] = useState({ status: null, priority: null, keyword: "" });
   const [issueDialog, setIssueDialog] = useState(false);
-  const [newIssue, setNewIssue] = useState({ description: "", status: "open", priority: "low", completed_by: "", started_by: user.name, petitioner_name: "", contact_type: "", contact_value: "", related_to_indicators: "", indicator_code: "", organizations_id: null});
+  const [newIssue, setNewIssue] = useState({ description: "", status: "open", priority: "low", severity: "not important", assigned_to: user.name, started_by: user.name, petitioner_name: "", contact_type: "email", contact_value: "", related_to_indicators: "no", indicator_code: "", organizations_id: null, startDate: null, endDate: null, user_id: user.id, category_id: null, solution_id: null }); // prefill with same structure as editIssue
   const [loading, setLoading] = useState(true);
   const [editDialogVisible, setEditDialogVisible] = useState(false);
   const [currentIssueId, setCurrentIssueId] = useState(null);
   const [editIssue, setEditIssue] = useState({});  // prefill with same structure as newIssue
   const [organizations, setOrganizations] = useState([]);
   const [indicators, setIndicators] = useState([]);
+  const [users, setUsers] = useState([]); 
+  const [categories, setCategories] = useState([]); 
+  useEffect(()=>{
+
+        if (user!=null && user.role=="user"){
+            // getColumnNames()
+            getIssuesByUser()
+            getOrganizations();
+            getCategories();
+            getUsers();
+            getIndicators();
+            setLoading(false);
+        }
+        else if (user!=null && user.role=="admin")
+        {
+            getIssues();
+            getOrganizations();
+            getCategories();
+            getUsers();
+            getIndicators();
+            setLoading(false);
+        }
+        
+      
+
+        // initFilters();
+    },[user]);
 
 
   // useEffect(() => {
@@ -37,13 +65,16 @@ const DashboardComp = () => {
   // }, []);
 
   /////////////////
-    useEffect(()=>{
-        getIssues();
-        getOrganizations();
-        getIndicators();
-        setLoading(false);
-        // initFilters();
-    },[]);
+    // useEffect(()=>{
+    //     getIssues();
+    //     getIssuesByUser();
+    //     getOrganizations();
+    //     getCategories();
+    //     getUsers();
+    //     getIndicators();
+    //     setLoading(false);
+    //     // initFilters();
+    // },[]);
 
     const getOrganizations = async () => {
         try {
@@ -54,6 +85,33 @@ const DashboardComp = () => {
             alert("Could not fetch organizations");
         }
       };
+      const getCategories = async () => {
+        try {
+            const response = await axios.get(`${apiBaseUrl}/categories`);
+            setCategories(response.data);
+        } catch (error) {
+            console.error("Failed to load categories:", error.message);
+            alert("Could not fetch categories");
+        }
+      };
+
+      const getUsers = async () => {
+        try {
+            const response = await axios.get(`${apiBaseUrl}/users`);
+            setUsers(response.data);
+        } catch (error) {
+            console.error("Failed to load users:", error.message);
+            alert("Could not fetch users");
+        }
+      };
+
+      const categoryOptions = categories.map(cat => ({label: cat.category_name, value: cat.id}));
+
+
+      const userOptions = users.map(user => ({
+        label: user.name,
+        value: user
+    }));
 
     const organizationOptions = organizations.map(org => ({
         label: org.name,
@@ -101,16 +159,53 @@ const indicatorOptions = indicators.map(ind => ({
         
     }
 
+    const getIssuesByUser = async() =>{
+        try {
+            const response = await axios.get(`${apiBaseUrl}/issues/user/${user.id}`, {timeout: 5000});
+            setIssues(response.data);
+
+            console.log("Issues", response.data)
+            
+            // console.log("roles2",uniqueRole)
+            // console.log(response.data)
+
+            
+        } catch (error) {
+            console.log("Custom error message: Failed to fetch issues");
+
+            if (error.response && error.response.status === 403) {
+                console.log("You are not authorized to view this resource.");
+                alert("Access denied! Please contact an administrator.");
+            } else {
+                console.log("An error occurred:", error.message);
+            }
+        }
+        
+    }
+
   ///////////////////
 
   const statusOptions = ["open", "in-progress", "resolved", "unresolved"].map(s => ({ label: s.charAt(0).toUpperCase() + s.slice(1), value: s }));
   const priorityOptions = ["low", "medium", "high"].map(p => ({ label: p.charAt(0).toUpperCase() + p.slice(1), value: p }));
+  const severityOptions = ["important", "not important", "critical"].map(p => ({ label: p.charAt(0).toUpperCase() + p.slice(1), value: p }));
+  const contactTypeOptions = [
+  { label: "Email", value: "email" },
+  { label: "Telephone", value: "telephone" }
+];
+
 
   ///DELETE USER SESSION FROM SERVER  
     const deleteIssue = async(issueId)=>{
       console.log("Id deleted: ",issueId)
         await axios.delete(`${apiBaseUrl}/issues/${issueId}`);
-        getIssues();
+        if(user.role === "user")
+        {
+          getIssuesByUser();
+        }
+        else
+        {
+          getIssues();
+        }
     }
 
   const openEditDialog = async (id) => {
@@ -130,7 +225,14 @@ const indicatorOptions = indicators.map(ind => ({
     try {
       await axios.patch(`${apiBaseUrl}/issues/${currentIssueId}`, editIssue);
       setEditDialogVisible(false);
-      getIssues(); // Refresh data
+      if(user.role === "user")
+      {
+        getIssuesByUser();
+      }
+      else
+      {
+        getIssues();
+      }
     } catch (error) {
       console.error("Failed to update issue:", error);
       alert("Failed to update issue.");
@@ -159,13 +261,19 @@ const indicatorOptions = indicators.map(ind => ({
         status: newIssue.status,
         priority: newIssue.priority,
         started_by: newIssue.started_by,
-        completed_by: newIssue.completed_by,
+        assigned_to: newIssue.assigned_to,
         petitioner_name: newIssue.petitioner_name,
         contact_type: newIssue.contact_type,
         contact_value: newIssue.contact_value,
         related_to_indicators: newIssue.related_to_indicators,
         indicator_code: newIssue.indicator_code,
-        organizations_id: newIssue.organizations_id
+        organizations_id: newIssue.organizations_id,
+        severity: newIssue.severity,
+        category_id: newIssue.category_id,
+        startDate: newIssue.startDate,
+        endDate: newIssue.endDate,
+        user_id: newIssue.user_id,
+        solution_id: newIssue.solution_id
       }
     );
     setIssueDialog(false)
@@ -212,19 +320,19 @@ const indicatorOptions = indicators.map(ind => ({
                     <div>
                     </div>
                 )}
-                {user && user.role ==="admin" && (
                 <span className='flex gap-1'>
                 
                     <Button className='action-button' outlined  icon="pi pi-pen-to-square" aria-label="Εdit" onClick={()=> openEditDialog(id)}/>
                     <Button className='action-button' outlined icon="pi pi-trash" severity="danger" aria-label="delete" onClick={()=>deleteIssue(id)} />
                 </span>
             
-                )}
+                
 
             </div>
  
         );
     }
+
 
   const statusTemplate = (rowData) => (
   <Tag
@@ -235,6 +343,19 @@ const indicatorOptions = indicators.map(ind => ({
         : rowData.status === "in-progress"
         ? "info"
         : "warning"
+    }
+  />
+);
+
+const severityTemplate = (rowData) => (
+  <Tag
+    value={rowData.severity}
+    severity={
+      rowData.severity === "not important"
+        ? "success"
+        : rowData.severity === "important"
+        ? "info"
+        : "danger"
     }
   />
 );
@@ -318,14 +439,22 @@ const priorityTemplate = (rowData) => (
           body={statusTemplate}
           style={{ minWidth: "8rem" }}
         />
+
+        <Column
+          field="severity"
+          header="Severity"
+          body={severityTemplate}
+          style={{ minWidth: "8rem" }}
+        />
+
         <Column
           field="started_by"
           header="Started By"
           style={{ minWidth: "10rem" }}
         />
         <Column
-          field="completed_by"
-          header="Completed By"
+          field="assigned_to"
+          header="Assigned To"
           style={{ minWidth: "10rem" }}
         />
         <Column
@@ -358,6 +487,32 @@ const priorityTemplate = (rowData) => (
           header="Organization Name "
           style={{ minWidth: "6rem" }}
         />
+        <Column
+          field="category.category_name"
+          header="Category Name"
+          style={{ minWidth: "6rem" }}
+        />
+        <Column
+  field="startDate"
+  header="Start Date"
+  style={{ minWidth: "6rem" }}
+  body={(rowData) =>
+    rowData.startDate
+      ? new Date(rowData.startDate).toLocaleDateString("en-GB")
+      : ""
+  }
+/>
+
+<Column
+  field="endDate"
+  header="End Date"
+  style={{ minWidth: "6rem" }}
+  body={(rowData) =>
+    rowData.endDate
+      ? new Date(rowData.endDate).toLocaleDateString("en-GB")
+      : ""
+  }
+/>
         <Column
           header="actions"
           field="id"
@@ -409,6 +564,16 @@ const priorityTemplate = (rowData) => (
           </div>
         </div>
 
+        <div className="field">
+            <label htmlFor="severity">Severity</label>
+            <Dropdown
+              value={newIssue.severity}
+              options={severityOptions}
+              onChange={(e) => setNewIssue({ ...newIssue, severity: e.value })}
+              placeholder="Select Severity"
+            />
+          </div>
+
         <div className="formgrid grid">
           <div className="field col">
             <label htmlFor="started_by">Started By</label>
@@ -420,17 +585,26 @@ const priorityTemplate = (rowData) => (
               }
               disabled
             />
-            {console.log(user.name)}
           </div>
           <div className="field col">
-            <label htmlFor="completed_by">Completed By</label>
-            <InputText
-              id="completed_by"
-              value={newIssue.completed_by}
-              onChange={(e) =>
-                setNewIssue({ ...newIssue, completed_by: e.target.value })
-              }
-            />
+            <label htmlFor="assigned_to">Assigned To</label>
+            <Dropdown
+            value={users.find(u => u.id === newIssue.user_id) || null}
+            options={userOptions}
+            onChange={(e) =>
+            {
+            setNewIssue({
+              ...newIssue,
+              assigned_to: e.value.name,
+              user_id: e.value.id
+              })
+            }
+            }
+            optionLabel="label"
+            placeholder="Select User"
+            filter
+            showClear
+          />
           </div>
         </div>
 
@@ -447,12 +621,11 @@ const priorityTemplate = (rowData) => (
           </div>
           <div className="field col">
             <label htmlFor="contact_type">Contact Type</label>
-            <InputText
-              id="contact_type"
+            <Dropdown
               value={newIssue.contact_type}
-              onChange={(e) =>
-                setNewIssue({ ...newIssue, contact_type: e.target.value })
-              }
+              options={contactTypeOptions}
+              onChange={(e) => setNewIssue({ ...newIssue, contact_type: e.value })}
+              placeholder="Select Contact Type"
             />
           </div>
         </div>
@@ -469,34 +642,43 @@ const priorityTemplate = (rowData) => (
             />
           </div>
           <div className="field col">
-            <label htmlFor="related_to_indicators">Related Indicator</label>
-            <InputText
-              id="related_to_indicators"
+             <label htmlFor="related_to_indicators">Related to Indicator</label>
+              <Dropdown
               value={newIssue.related_to_indicators}
-              onChange={(e) =>
-                setNewIssue({
-                  ...newIssue,
-                  related_to_indicators: e.target.value,
-                })
-              }
+              options={[{ label: "Yes", value: "Yes" }, { label: "No", value: "No" }]}
+              onChange={(e) => setNewIssue({ ...newIssue, related_to_indicators: e.value, indicator_code: e.value === "Yes" ? newIssue.indicator_code : "" })}
+              placeholder="Select Yes or No"
             />
           </div>
         </div>
 
+       {newIssue.related_to_indicators === "Yes" && (
+  <div className="field">
+    <label htmlFor="indicator_code">Indicator Code</label>
+    <Dropdown
+      value={newIssue.indicator_code}
+      options={indicatorOptions}
+      onChange={(e) => setNewIssue({ ...newIssue, indicator_code: e.value })}
+      placeholder="Select Indicator Code"
+      filter
+      showClear
+      filterBy="label"
+    />
+  </div>
+)}
+
         <div className="field">
-          <label htmlFor="indicator_code">Indicator Code</label>
+          <label htmlFor="category">Category</label>
           <Dropdown
-            value={newIssue.indicator_code}
-            options={indicatorOptions}
-            onChange={(e) =>
-              setNewIssue({ ...newIssue, indicator_code: e.value })
-            }
-            placeholder="Select Indicator Code"
-            filter
+            value={newIssue.category_id}
+            options={categoryOptions}
+            onChange={(e) => setNewIssue({ ...newIssue, category_id: e.value })}
+            placeholder="Select Category"
             showClear
-            filterBy="label"
           />
         </div>
+
+
 
         <div className="field">
           <label htmlFor="organizations_id">Organization</label>
@@ -507,6 +689,30 @@ const priorityTemplate = (rowData) => (
               setNewIssue({ ...newIssue, organizations_id: e.value })
             }
             placeholder="Select an Organization"
+          />
+        </div>
+
+        <div className="field">
+          <label htmlFor="startDate">Started Date</label>
+          <Calendar
+            id="startDate"
+            value={newIssue.startDate}
+            onChange={(e) =>
+              setNewIssue({ ...newIssue, startDate: e.value })
+            }
+            placeholder="Select a Start Date"
+          />
+        </div>
+
+        <div className="field">
+          <label htmlFor="endDate">End Date</label>
+          <Calendar
+            id="endDate"
+            value={newIssue.endDate}
+            onChange={(e) =>
+              setNewIssue({ ...newIssue, endDate: e.value })
+            }
+            placeholder="Select an End Date"
           />
         </div>
 
@@ -574,13 +780,22 @@ const priorityTemplate = (rowData) => (
             />
           </div>
           <div className="field col">
-            <label htmlFor="completed_by">Completed By</label>
-            <InputText
-              value={editIssue.completed_by || ""}
-              onChange={(e) =>
-                setEditIssue({ ...editIssue, completed_by: e.target.value })
-              }
-            />
+            <label htmlFor="assigned_to">Assigned To</label>
+            <Dropdown
+            value={users.find(u => u.name === editIssue.assigned_to)}
+            options={userOptions}
+            onChange={(e) =>
+              setEditIssue({
+                ...editIssue,
+                assigned_to: e.value.name,
+                user_id: e.value.id
+              })
+            }
+            optionLabel="label"
+            placeholder="Select User"
+            filter
+            showClear
+          />
           </div>
         </div>
 
@@ -596,11 +811,11 @@ const priorityTemplate = (rowData) => (
           </div>
           <div className="field col">
             <label htmlFor="contact_type">Contact Type</label>
-            <InputText
-              value={editIssue.contact_type || ""}
-              onChange={(e) =>
-                setEditIssue({ ...editIssue, contact_type: e.target.value })
-              }
+            <Dropdown
+              value={editIssue.contact_type}
+              options={contactTypeOptions}
+              onChange={(e) => setEditIssue({ ...editIssue, contact_type: e.value })}
+              placeholder="Select Contact Type"
             />
           </div>
         </div>
@@ -616,33 +831,42 @@ const priorityTemplate = (rowData) => (
             />
           </div>
           <div className="field col">
-            <label htmlFor="related_to_indicators">Related Indicator</label>
-            <InputText
-              value={editIssue.related_to_indicators || ""}
-              onChange={(e) =>
-                setEditIssue({
-                  ...editIssue,
-                  related_to_indicators: e.target.value,
-                })
-              }
+            <label htmlFor="related_to_indicators">Related to Indicator</label>
+            <Dropdown
+              value={editIssue.related_to_indicators}
+              options={[{ label: "Yes", value: "Yes" }, { label: "No", value: "No" }]}
+              onChange={(e) => setEditIssue({ ...editIssue, related_to_indicators: e.value, indicator_code: e.value === "Yes" ? editIssue.indicator_code : "" })}
+              placeholder="Select Yes or No"
             />
           </div>
         </div>
 
-        <div className="field">
-          <label htmlFor="indicator_code">Indicator Code</label>
-          <Dropdown
-            value={editIssue.indicator_code}
-            options={indicatorOptions}
-            onChange={(e) =>
-              setEditIssue({ ...editIssue, indicator_code: e.value })
-            }
-            placeholder="Select Indicator Code"
-            filter
-            showClear
-            filterBy="label"
-          />
-        </div>
+        {editIssue.related_to_indicators === "Yes" && (
+      <div className="field">
+        <label htmlFor="indicator_code">Indicator Code</label>
+        <Dropdown
+          value={editIssue.indicator_code}
+          options={indicatorOptions}
+          onChange={(e) => setEditIssue({ ...editIssue, indicator_code: e.value })}
+          placeholder="Select Indicator Code"
+          filter
+          showClear
+          filterBy="label"
+        />
+      </div>
+    )}
+
+          <div className="field">
+        <label htmlFor="category">Category</label>
+        <Dropdown
+          value={editIssue.category_id}
+          options={categoryOptions}
+          onChange={(e) => setEditIssue({ ...editIssue, category_id: e.value })}
+          placeholder="Select Category"
+          showClear
+        />
+      </div>
+
 
         <div className="field">
           <label htmlFor="organizations_id">Organization</label>
@@ -653,6 +877,30 @@ const priorityTemplate = (rowData) => (
               setEditIssue({ ...editIssue, organizations_id: e.value })
             }
             placeholder="Select an Organization"
+          />
+        </div>
+
+        <div className="field">
+          <label htmlFor="startDate">Started Date</label>
+          <Calendar
+            id="startDate"
+            value={editIssue.startDate}
+            onChange={(e) =>
+              setEditIssue({ ...editIssue, startDate: e.value })
+            }
+            placeholder="Select a Start Date"
+          />
+        </div>
+
+        <div className="field">
+          <label htmlFor="endDate">End Date</label>
+          <Calendar
+            id="endDate"
+            value={editIssue.endDate}
+            onChange={(e) =>
+              setEditIssue({ ...editIssue, endDate: e.value })
+            }
+            placeholder="Select an End Date"
           />
         </div>
 
