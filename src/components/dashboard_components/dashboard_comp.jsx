@@ -28,7 +28,7 @@ const DashboardComp = () => {
   const [issues, setIssues] = useState([]);
   const [filters, setFilters] = useState({ status: null, priority: null, keyword: "" });
   const [issueDialog, setIssueDialog] = useState(false);
-  const [newIssue, setNewIssue] = useState({ description: "", status: "open", priority: "low", severity: "not important", assigned_to: user?.name, started_by: user?.name, petitioner_name: "", contact_type: "email", contact_value: "", related_to_indicators: "no", indicator_code: "", organizations_id: null, startDate: null, endDate: null, user_id: user?.id, category_id: null, solution_id: null }); // prefill with same structure as editIssue
+  const [newIssue, setNewIssue] = useState({ description: "", status: "open", priority: "low", severity: "not important", assigned_to: user?.name, started_by: user?.name, petitioner_name: "", contact_type: "email", contact_value: "", related_to_indicators: "no", indicator_code: "", organizations_id: null, startDate: null, endDate: null, user_id: user?.id, category_id: null, solution_id: null, solution_title: "", solution_desc: "" }); // prefill with same structure as editIssue
   const [loading, setLoading] = useState(true);
   const [editDialogVisible, setEditDialogVisible] = useState(false);
   const [currentIssueId, setCurrentIssueId] = useState(null);
@@ -36,7 +36,9 @@ const DashboardComp = () => {
   const [organizations, setOrganizations] = useState([]);
   const [indicators, setIndicators] = useState([]);
   const [users, setUsers] = useState([]); 
-  const [categories, setCategories] = useState([]); 
+  const [categories, setCategories] = useState([]);
+  const [linkedSolution, setLinkedSolution] = useState({ title: "", desc: "", id: null });
+ 
   useEffect(()=>{
 
         if (user!=null && user.role=="user"){
@@ -214,35 +216,83 @@ const indicatorOptions = indicators.map(ind => ({
     }
 
   const openEditDialog = async (id) => {
-      try {
-        const response = await axios.get(`${apiBaseUrl}/issues/${id}`);
-        setEditIssue(response.data);
-        setCurrentIssueId(id);
-        setEditDialogVisible(true);
-      } catch (error) {
-        console.error("Error loading issue:", error);
-        alert("Failed to load issue details.");
-      }
-    };
-
-
-    const updateIssue = async () => {
     try {
-      await axios.patch(`${apiBaseUrl}/issues/${currentIssueId}`, editIssue);
-      setEditDialogVisible(false);
-      if(user.role === "user")
-      {
-        getIssuesByUser();
-      }
-      else
-      {
-        getIssues();
+      const response = await axios.get(`${apiBaseUrl}/issues/${id}`);
+      const issue = response.data;
+
+      setEditIssue(issue);
+      setCurrentIssueId(id);
+      setEditDialogVisible(true);
+
+      // Fetch linked solution if any
+      if (issue.solution_id) {
+        const solutionResponse = await axios.get(
+          `${apiBaseUrl}/solutions/${issue.solution_id}`
+        );
+        const sol = solutionResponse.data;
+        setLinkedSolution({
+          id: sol.id,
+          title: sol.solution_title || "",
+          desc: sol.solution_desc || "",
+        });
+      } else {
+        setLinkedSolution({ id: null, title: "", desc: "" });
       }
     } catch (error) {
-      console.error("Failed to update issue:", error);
-      alert("Failed to update issue.");
+      console.error("Error loading issue or solution:", error);
+      alert("Failed to load issue details.");
     }
-};
+  };
+
+
+
+   const updateIssue = async () => {
+     try {
+       let solutionId = editIssue.solution_id; // might be null initially
+
+       // 1. If issue is resolved, handle solution
+       if (editIssue.status === "resolved") {
+         const { title, desc, id } = linkedSolution;
+
+         if (title.trim() !== "" && desc.trim() !== "") {
+           if (id) {
+             // 1A: If solution exists, update it
+             await axios.patch(`${apiBaseUrl}/solutions/${id}`, {
+               solution_title: title,
+               solution_desc: desc,
+             });
+             solutionId = id;
+           } else {
+             // 1B: Create a new solution and store its ID
+             const response = await axios.post(`${apiBaseUrl}/solutions`, {
+               solution_title: title,
+               solution_desc: desc,
+             });
+             solutionId = response.data.id;
+
+             // Link it to the issue for PATCH
+             setLinkedSolution((prev) => ({ ...prev, id: solutionId }));
+           }
+         }
+       }
+
+       // 2. Update the issue with (possibly) new solution_id
+       await axios.patch(`${apiBaseUrl}/issues/${currentIssueId}`, {
+         ...editIssue,
+         solution_id: solutionId || null,
+       });
+
+       setEditDialogVisible(false);
+       setLinkedSolution({ id: null, title: "", desc: "" });
+
+       user.role === "user" ? getIssuesByUser() : getIssues();
+     } catch (error) {
+       console.error("Failed to update issue and/or solution:", error);
+       alert("Update failed. Check console for details.");
+     }
+   };
+
+
 
   // const saveIssues = (updatedIssues) => {
   //   localStorage.setItem("issues", JSON.stringify(updatedIssues));
@@ -259,9 +309,25 @@ const indicatorOptions = indicators.map(ind => ({
   //   setNewIssue({ title: "", description: "", status: "open", priority: "low", solution: "" });
   // };
   const addIssue = async () => {
-  try {
-    await axios.post(`${apiBaseUrl}/issues`, 
-      {
+    try {
+      let createdSolutionId = null;
+
+      // 1. If resolved and solution fields are filled, create a new solution
+      if (
+        newIssue.status === "resolved" &&
+        newIssue.solution_title.trim() !== "" &&
+        newIssue.solution_desc.trim() !== ""
+      ) {
+        const solutionResponse = await axios.post(`${apiBaseUrl}/solutions`, {
+          solution_title: newIssue.solution_title,
+          solution_desc: newIssue.solution_desc,
+        });
+
+        createdSolutionId = solutionResponse.data.id;
+      }
+
+      // 2. Create the issue
+      await axios.post(`${apiBaseUrl}/issues`, {
         description: newIssue.description,
         status: newIssue.status,
         priority: newIssue.priority,
@@ -278,32 +344,17 @@ const indicatorOptions = indicators.map(ind => ({
         startDate: newIssue.startDate,
         endDate: newIssue.endDate,
         user_id: newIssue.user_id,
-        solution_id: newIssue.solution_id
-      }
-    );
-    setIssueDialog(false)
-    window.location.reload()
-    
-    // getIssues(); // refresh
-    // setIssueDialog(false);
-    // setNewIssue({
-    //   description: "",
-    //   priority: "low",
-    //   status: "open",
-    //   completed_by: "",
-    //   started_by: "",
-    //   petitioner_name: "",
-    //   contact_type: "",
-    //   contact_value: "",
-    //   related_to_indicators: "",
-    //   indicator_code: "",
-    //   organizations_id: 1
-    // });
-  } catch (error) {
-    console.error("Failed to add issue:", error.message);
-    alert("Failed to add issue. Check console for details.");
-  }
-};
+        solution_id: createdSolutionId,
+      });
+
+      setIssueDialog(false);
+      window.location.reload();
+    } catch (error) {
+      console.error("Failed to add issue:", error.message);
+      alert("Failed to add issue. Check console for details.");
+    }
+  };
+
 
 
   const filteredIssues = issues.filter(issue => {
@@ -439,11 +490,8 @@ const renderKPIs = () => {
           icon="pi pi-plus"
           onClick={() => setIssueDialog(true)}
         />
-
       </div>
-
-      {renderKPIs()}  {/* <-- Add this line here */}
-
+      {renderKPIs()} {/* <-- Add this line here */}
       <div className="flex flex-wrap gap-3 mb-3">
         <Dropdown
           value={filters.status}
@@ -470,7 +518,6 @@ const renderKPIs = () => {
         <Column field="priority" header="Priority" body={priorityTemplate} />
         <Column field="date" header="Reported" />
       </DataTable> */}
-
       <DataTable
         value={filteredIssues}
         paginator
@@ -552,26 +599,26 @@ const renderKPIs = () => {
           style={{ minWidth: "6rem" }}
         />
         <Column
-  field="startDate"
-  header="Start Date"
-  style={{ minWidth: "6rem" }}
-  body={(rowData) =>
-    rowData.startDate
-      ? new Date(rowData.startDate).toLocaleDateString("en-GB")
-      : ""
-  }
-/>
+          field="startDate"
+          header="Start Date"
+          style={{ minWidth: "6rem" }}
+          body={(rowData) =>
+            rowData.startDate
+              ? new Date(rowData.startDate).toLocaleDateString("en-GB")
+              : ""
+          }
+        />
 
-<Column
-  field="endDate"
-  header="End Date"
-  style={{ minWidth: "6rem" }}
-  body={(rowData) =>
-    rowData.endDate
-      ? new Date(rowData.endDate).toLocaleDateString("en-GB")
-      : ""
-  }
-/>
+        <Column
+          field="endDate"
+          header="End Date"
+          style={{ minWidth: "6rem" }}
+          body={(rowData) =>
+            rowData.endDate
+              ? new Date(rowData.endDate).toLocaleDateString("en-GB")
+              : ""
+          }
+        />
         <Column
           header="actions"
           field="id"
@@ -580,7 +627,6 @@ const renderKPIs = () => {
           frozen
         />
       </DataTable>
-
       <Dialog
         header="Add New Issue"
         visible={issueDialog}
@@ -624,14 +670,14 @@ const renderKPIs = () => {
         </div>
 
         <div className="field">
-            <label htmlFor="severity">Severity</label>
-            <Dropdown
-              value={newIssue.severity}
-              options={severityOptions}
-              onChange={(e) => setNewIssue({ ...newIssue, severity: e.value })}
-              placeholder="Select Severity"
-            />
-          </div>
+          <label htmlFor="severity">Severity</label>
+          <Dropdown
+            value={newIssue.severity}
+            options={severityOptions}
+            onChange={(e) => setNewIssue({ ...newIssue, severity: e.value })}
+            placeholder="Select Severity"
+          />
+        </div>
 
         <div className="formgrid grid">
           <div className="field col">
@@ -648,22 +694,20 @@ const renderKPIs = () => {
           <div className="field col">
             <label htmlFor="assigned_to">Assigned To</label>
             <Dropdown
-            value={users.find(u => u.id === newIssue.user_id) || null}
-            options={userOptions}
-            onChange={(e) =>
-            {
-            setNewIssue({
-              ...newIssue,
-              assigned_to: e.value.name,
-              user_id: e.value.id
-              })
-            }
-            }
-            optionLabel="label"
-            placeholder="Select User"
-            filter
-            showClear
-          />
+              value={users.find((u) => u.id === newIssue.user_id) || null}
+              options={userOptions}
+              onChange={(e) => {
+                setNewIssue({
+                  ...newIssue,
+                  assigned_to: e.value.name,
+                  user_id: e.value.id,
+                });
+              }}
+              optionLabel="label"
+              placeholder="Select User"
+              filter
+              showClear
+            />
           </div>
         </div>
 
@@ -683,7 +727,9 @@ const renderKPIs = () => {
             <Dropdown
               value={newIssue.contact_type}
               options={contactTypeOptions}
-              onChange={(e) => setNewIssue({ ...newIssue, contact_type: e.value })}
+              onChange={(e) =>
+                setNewIssue({ ...newIssue, contact_type: e.value })
+              }
               placeholder="Select Contact Type"
             />
           </div>
@@ -701,30 +747,42 @@ const renderKPIs = () => {
             />
           </div>
           <div className="field col">
-             <label htmlFor="related_to_indicators">Related to Indicator</label>
-              <Dropdown
+            <label htmlFor="related_to_indicators">Related to Indicator</label>
+            <Dropdown
               value={newIssue.related_to_indicators}
-              options={[{ label: "Yes", value: "Yes" }, { label: "No", value: "No" }]}
-              onChange={(e) => setNewIssue({ ...newIssue, related_to_indicators: e.value, indicator_code: e.value === "Yes" ? newIssue.indicator_code : "" })}
+              options={[
+                { label: "Yes", value: "Yes" },
+                { label: "No", value: "No" },
+              ]}
+              onChange={(e) =>
+                setNewIssue({
+                  ...newIssue,
+                  related_to_indicators: e.value,
+                  indicator_code:
+                    e.value === "Yes" ? newIssue.indicator_code : "",
+                })
+              }
               placeholder="Select Yes or No"
             />
           </div>
         </div>
 
-       {newIssue.related_to_indicators === "Yes" && (
-  <div className="field">
-    <label htmlFor="indicator_code">Indicator Code</label>
-    <Dropdown
-      value={newIssue.indicator_code}
-      options={indicatorOptions}
-      onChange={(e) => setNewIssue({ ...newIssue, indicator_code: e.value })}
-      placeholder="Select Indicator Code"
-      filter
-      showClear
-      filterBy="label"
-    />
-  </div>
-)}
+        {newIssue.related_to_indicators === "Yes" && (
+          <div className="field">
+            <label htmlFor="indicator_code">Indicator Code</label>
+            <Dropdown
+              value={newIssue.indicator_code}
+              options={indicatorOptions}
+              onChange={(e) =>
+                setNewIssue({ ...newIssue, indicator_code: e.value })
+              }
+              placeholder="Select Indicator Code"
+              filter
+              showClear
+              filterBy="label"
+            />
+          </div>
+        )}
 
         <div className="field">
           <label htmlFor="category">Category</label>
@@ -736,8 +794,6 @@ const renderKPIs = () => {
             showClear
           />
         </div>
-
-
 
         <div className="field">
           <label htmlFor="organizations_id">Organization</label>
@@ -756,21 +812,46 @@ const renderKPIs = () => {
           <Calendar
             id="startDate"
             value={newIssue.startDate}
-            onChange={(e) =>
-              setNewIssue({ ...newIssue, startDate: e.value })
-            }
+            onChange={(e) => setNewIssue({ ...newIssue, startDate: e.value })}
             placeholder="Select a Start Date"
           />
         </div>
+
+        {newIssue.status === "resolved" && (
+          <>
+            <div className="field">
+              <label htmlFor="solution_title">Solution Title</label>
+              <InputText
+                id="solution_title"
+                value={newIssue.solution_title}
+                onChange={(e) =>
+                  setNewIssue({ ...newIssue, solution_title: e.target.value })
+                }
+                placeholder="Enter Solution Title"
+              />
+            </div>
+
+            <div className="field">
+              <label htmlFor="solution_desc">Solution Description</label>
+              <InputTextarea
+                id="solution_desc"
+                value={newIssue.solution_desc}
+                onChange={(e) =>
+                  setNewIssue({ ...newIssue, solution_desc: e.target.value })
+                }
+                rows={3}
+                placeholder="Enter Solution Description"
+              />
+            </div>
+          </>
+        )}
 
         <div className="field">
           <label htmlFor="endDate">End Date</label>
           <Calendar
             id="endDate"
             value={newIssue.endDate}
-            onChange={(e) =>
-              setNewIssue({ ...newIssue, endDate: e.value })
-            }
+            onChange={(e) => setNewIssue({ ...newIssue, endDate: e.value })}
             placeholder="Select an End Date"
           />
         </div>
@@ -785,7 +866,6 @@ const renderKPIs = () => {
           <Button label="Add" icon="pi pi-check" onClick={addIssue} autoFocus />
         </div>
       </Dialog>
-
       <Dialog
         header="Edit Issue"
         visible={editDialogVisible}
@@ -827,15 +907,15 @@ const renderKPIs = () => {
           </div>
         </div>
 
-         <div className="field">
-            <label htmlFor="severity">Severity</label>
-            <Dropdown
-              value={editIssue.severity}
-              options={severityOptions}
-              onChange={(e) => setEditIssue({ ...editIssue, severity: e.value })}
-              placeholder="Select Severity"
-            />
-          </div>
+        <div className="field">
+          <label htmlFor="severity">Severity</label>
+          <Dropdown
+            value={editIssue.severity}
+            options={severityOptions}
+            onChange={(e) => setEditIssue({ ...editIssue, severity: e.value })}
+            placeholder="Select Severity"
+          />
+        </div>
 
         <div className="formgrid grid">
           <div className="field col">
@@ -851,20 +931,20 @@ const renderKPIs = () => {
           <div className="field col">
             <label htmlFor="assigned_to">Assigned To</label>
             <Dropdown
-            value={users.find(u => u.name === editIssue.assigned_to)}
-            options={userOptions}
-            onChange={(e) =>
-              setEditIssue({
-                ...editIssue,
-                assigned_to: e.value.name,
-                user_id: e.value.id
-              })
-            }
-            optionLabel="label"
-            placeholder="Select User"
-            filter
-            showClear
-          />
+              value={users.find((u) => u.name === editIssue.assigned_to)}
+              options={userOptions}
+              onChange={(e) =>
+                setEditIssue({
+                  ...editIssue,
+                  assigned_to: e.value.name,
+                  user_id: e.value.id,
+                })
+              }
+              optionLabel="label"
+              placeholder="Select User"
+              filter
+              showClear
+            />
           </div>
         </div>
 
@@ -883,7 +963,9 @@ const renderKPIs = () => {
             <Dropdown
               value={editIssue.contact_type}
               options={contactTypeOptions}
-              onChange={(e) => setEditIssue({ ...editIssue, contact_type: e.value })}
+              onChange={(e) =>
+                setEditIssue({ ...editIssue, contact_type: e.value })
+              }
               placeholder="Select Contact Type"
             />
           </div>
@@ -903,39 +985,52 @@ const renderKPIs = () => {
             <label htmlFor="related_to_indicators">Related to Indicator</label>
             <Dropdown
               value={editIssue.related_to_indicators}
-              options={[{ label: "Yes", value: "Yes" }, { label: "No", value: "No" }]}
-              onChange={(e) => setEditIssue({ ...editIssue, related_to_indicators: e.value, indicator_code: e.value === "Yes" ? editIssue.indicator_code : "" })}
+              options={[
+                { label: "Yes", value: "Yes" },
+                { label: "No", value: "No" },
+              ]}
+              onChange={(e) =>
+                setEditIssue({
+                  ...editIssue,
+                  related_to_indicators: e.value,
+                  indicator_code:
+                    e.value === "Yes" ? editIssue.indicator_code : "",
+                })
+              }
               placeholder="Select Yes or No"
             />
           </div>
         </div>
 
         {editIssue.related_to_indicators === "Yes" && (
-      <div className="field">
-        <label htmlFor="indicator_code">Indicator Code</label>
-        <Dropdown
-          value={editIssue.indicator_code}
-          options={indicatorOptions}
-          onChange={(e) => setEditIssue({ ...editIssue, indicator_code: e.value })}
-          placeholder="Select Indicator Code"
-          filter
-          showClear
-          filterBy="label"
-        />
-      </div>
-    )}
-
           <div className="field">
-        <label htmlFor="category">Category</label>
-        <Dropdown
-          value={editIssue.category_id}
-          options={categoryOptions}
-          onChange={(e) => setEditIssue({ ...editIssue, category_id: e.value })}
-          placeholder="Select Category"
-          showClear
-        />
-      </div>
+            <label htmlFor="indicator_code">Indicator Code</label>
+            <Dropdown
+              value={editIssue.indicator_code}
+              options={indicatorOptions}
+              onChange={(e) =>
+                setEditIssue({ ...editIssue, indicator_code: e.value })
+              }
+              placeholder="Select Indicator Code"
+              filter
+              showClear
+              filterBy="label"
+            />
+          </div>
+        )}
 
+        <div className="field">
+          <label htmlFor="category">Category</label>
+          <Dropdown
+            value={editIssue.category_id}
+            options={categoryOptions}
+            onChange={(e) =>
+              setEditIssue({ ...editIssue, category_id: e.value })
+            }
+            placeholder="Select Category"
+            showClear
+          />
+        </div>
 
         <div className="field">
           <label htmlFor="organizations_id">Organization</label>
@@ -949,14 +1044,44 @@ const renderKPIs = () => {
           />
         </div>
 
+        {editIssue.status === "resolved" && (
+          <>
+            <div className="field">
+              <label htmlFor="edit_solution_title">Solution Title</label>
+              <InputText
+                id="edit_solution_title"
+                value={linkedSolution.title}
+                onChange={(e) =>
+                  setLinkedSolution({
+                    ...linkedSolution,
+                    title: e.target.value,
+                  })
+                }
+                placeholder="Enter Solution Title"
+              />
+            </div>
+
+            <div className="field">
+              <label htmlFor="edit_solution_desc">Solution Description</label>
+              <InputTextarea
+                id="edit_solution_desc"
+                value={linkedSolution.desc}
+                onChange={(e) =>
+                  setLinkedSolution({ ...linkedSolution, desc: e.target.value })
+                }
+                rows={3}
+                placeholder="Enter Solution Description"
+              />
+            </div>
+          </>
+        )}
+
         <div className="field">
           <label htmlFor="startDate">Started Date</label>
           <Calendar
             id="startDate"
             value={editIssue.startDate ? new Date(editIssue.startDate) : null}
-            onChange={(e) =>
-              setEditIssue({ ...editIssue, startDate: e.value })
-            }
+            onChange={(e) => setEditIssue({ ...editIssue, startDate: e.value })}
             placeholder="Select a Start Date"
           />
         </div>
@@ -965,10 +1090,8 @@ const renderKPIs = () => {
           <label htmlFor="endDate">End Date</label>
           <Calendar
             id="endDate"
-            value={editIssue.endDate ? new Date(editIssue.endDate): null}
-            onChange={(e) =>
-              setEditIssue({ ...editIssue, endDate: e.value })
-            }
+            value={editIssue.endDate ? new Date(editIssue.endDate) : null}
+            onChange={(e) => setEditIssue({ ...editIssue, endDate: e.value })}
             placeholder="Select an End Date"
           />
         </div>
