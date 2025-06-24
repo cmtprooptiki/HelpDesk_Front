@@ -25,6 +25,7 @@ import Category from './pages/category_pages/category.jsx'
 // import "primereact/resources/themes/tailwind-light/theme.css";
 // import "primereact/resources/themes/fluent-light/theme.css";
 import "primereact/resources/themes/lara-light-blue/theme.css";
+import Solution from './pages/solution_pages/solution.jsx'
 // import "primereact/resources/themes/lara-light-indigo/theme.css";
 // import "primereact/resources/themes/lara-light-purple/theme.css";
 // import "primereact/resources/themes/lara-light-teal/theme.css";
@@ -84,6 +85,7 @@ function App() {
               <Route path="/users/edit/:id" element={<ProtectedRoute requiredRole="user"><EditUser/></ProtectedRoute>}></Route>
               <Route path = "/organizations" element={<ProtectedRoute requiredRole="user"><Organization/></ProtectedRoute>} ></Route>
               <Route path = "/categories" element={<ProtectedRoute requiredRole="user"><Category/></ProtectedRoute>} ></Route>
+              <Route path = "/solutions" element={<ProtectedRoute requiredRole="user"><Solution/></ProtectedRoute>} ></Route>
 
             </Routes>
           </BrowserRouter>

@@ -1,12 +1,13 @@
-import React,{useEffect} from 'react'
+import React ,{useEffect} from 'react'
 import Layout from '../Layout'
-import FormEditUser from '../../components/user_components/FormEditUser'
+import CategoryList from '../../components/category_components/CategoryList.jsx'
 import { useDispatch,useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
 import { getMe } from '../../features/auth_slice.jsx'
 import Navbar from '../../components/navbar.jsx'
+import SolutionList from '../../components/solution_components/SolutionList.jsx'
 
-const EditUser = () => {
+const Solution = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const {isError,user} = useSelector((state=>state.auth));
@@ -17,21 +18,23 @@ const EditUser = () => {
 
   // useEffect(()=>{
   //     if(isError){
-  //         navigate("/");
+  //         //navigate("/");
+  //         console.log(isError)
   //     }
   //     if(user && user.role !=="admin"){
-  //       navigate("/dashboard");
+  //       //navigate("/dashboard");
+  //       console.log(user)
+
   //     }
   // },[isError,user,navigate]);
   return (
     <>
-      <Navbar />
-
-      <Layout>
-        <FormEditUser />
-      </Layout>
+    <Navbar/>
+    <Layout>
+        <SolutionList/>
+    </Layout>
     </>
-  );
+  )
 }
 
-export default EditUser
+export default Solution

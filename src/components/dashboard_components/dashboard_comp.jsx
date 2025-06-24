@@ -18,9 +18,9 @@ import { MultiSelect } from "primereact/multiselect";
 import { Calendar } from "primereact/calendar";
 
 import { Card } from "primereact/card";
-import { PiWarningCircleFill, PiCheckCircleFill, PiTimerFill, PiClipboardTextFill } from "react-icons/pi";
+import { PiListBulletsFill,PiFlagCheckeredFill ,PiClockCountdownBold ,PiXCircleFill ,PiWarningCircleFill, PiCheckCircleFill, PiTimerFill, PiClipboardTextFill } from "react-icons/pi";
 import {BsXCircleFill} from "react-icons/bs"
-
+import "../../../css/kpis.css"
 
 const DashboardComp = () => {
       const {user} =useSelector((state)=>state.auth)
@@ -390,31 +390,42 @@ const renderKPIs = () => {
   const critical = issues.filter(i => i.severity === "critical").length;
 
   const kpis = [
-    { label: "Total Issues", value: total, icon: <PiClipboardTextFill className="text-blue-500 text-3xl" />, bg: "bg-blue-50" },
-    { label: "Open", value: open, icon: <PiTimerFill className="text-yellow-500 text-3xl" />, bg: "bg-yellow-50" },
+    { label: "Total Issues", value: total, icon: <PiListBulletsFill className="text-blue-500 text-3xl" />, bg: "blue", },
+    { label: "Open", value: open, icon: <PiFlagCheckeredFill  className="text-yellow-500 text-3xl" />, bg: "yellow" },
 
-    { label: "In Progress", value: inprogress, icon: <PiTimerFill className="text-purple-500 text-3xl" />, bg: "bg-yellow-50" },
-    { label: "Resolved", value: resolved, icon: <PiCheckCircleFill className="text-green-500 text-3xl" />, bg: "bg-green-50" },
-   { label: "Unresolved", value: unresolved, icon: <BsXCircleFill  className="text-red-500 text-3xl" />, bg: "bg-red-50" },
-    { label: "Critical", value: critical, icon: <PiWarningCircleFill className="text-red-500 text-3xl" />, bg: "bg-red-50" }
+    { label: "In Progress", value: inprogress, icon: <PiClockCountdownBold  className="text-purple-500 text-3xl" />, bg: "purple" },
+    { label: "Resolved", value: resolved, icon: <PiCheckCircleFill className="text-green-500 text-3xl" />, bg: "green" },
+   { label: "Unresolved", value: unresolved, icon: <PiXCircleFill   className="text-red-500 text-3xl" />, bg: "red" },
+    { label: "Critical", value: critical, icon: <PiWarningCircleFill className="text-red-500 text-3xl" />, bg: "red" }
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 my-4">
+    <div className="kpi-grid">
       {kpis.map((kpi, idx) => (
-        <Card key={idx} className={`shadow-sm ${kpi.bg}`}>
-          <div className="flex items-center space-x-4">
-            <div>{kpi.icon}</div>
-            <div>
-              <div className="text-xl font-semibold">{kpi.value}</div>
-              <div className="text-sm text-gray-600">{kpi.label}</div>
+        <div
+          key={idx}
+          className="kpi-card"
+          style={{ borderLeft: `5px solid ${kpi.bg}` }}
+        >
+          <div className="kpi-content">
+            <div className="kpi-left">
+              <div className="kpi-label">{kpi.label}</div>
+              <div className="kpi-value">{kpi.value}</div>
+              {kpi.delta && (
+                <div
+                  className={`kpi-delta ${
+                    kpi.deltaPositive ? "positive" : "negative"
+                  }`}
+                >
+                  {kpi.deltaPositive ? "↑" : "↓"} {kpi.delta}
+                </div>
+              )}
             </div>
+            <div className="kpi-icon">{kpi.icon}</div>
           </div>
-        </Card>
+        </div>
       ))}
     </div>
-
-    
   );
 };
 

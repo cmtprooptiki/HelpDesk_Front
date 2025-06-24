@@ -16,7 +16,7 @@ import { useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 import { MultiSelect } from "primereact/multiselect";
 
-const CategoryList = () => {
+const SolutionList = () => {
       const {user} =useSelector((state)=>state.auth)
 
   const [filters, setFilters] = useState({ status: null, priority: null, keyword: "" });
@@ -47,10 +47,10 @@ const CategoryList = () => {
     ///REQUEST USERS FROM SERVER AND SET CONST
     const getCategories = async() =>{
         try {
-            const response = await axios.get(`${apiBaseUrl}/categories`, {timeout: 5000});
+            const response = await axios.get(`${apiBaseUrl}/solutions`, {timeout: 5000});
             setCategories(response.data);
 
-            console.log("Categories", response.data)
+            console.log("Solutions", response.data)
 
             // console.log("roles2",uniqueRole)
             // console.log(response.data)
@@ -228,8 +228,13 @@ const CategoryList = () => {
       >
         <Column field="id" header="ID" style={{ width: "4em" }} />
         <Column
-          field="category_name"
-          header="Category Name"
+          field="solution_title"
+          header="Title"
+          style={{ minWidth: "12rem" }}
+        />
+        <Column
+          field="solution_desc"
+          header="Description"
           style={{ minWidth: "12rem" }}
         />
         <Column
@@ -322,4 +327,4 @@ const CategoryList = () => {
   );
 };
 
-export default CategoryList;
+export default SolutionList;
