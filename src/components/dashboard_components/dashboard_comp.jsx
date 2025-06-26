@@ -317,6 +317,48 @@ const indicatorOptions = indicators.map(ind => ({
 
           setIndicatorFilterOptions(usedIndicatorOptions);
 
+          // Extract unique organizations from issue.organization
+          const uniqueOrganizations = Array.from(
+            new Map(
+              response.data
+                .filter(
+                  (issue) => issue.organization?.id && issue.organization?.name
+                )
+                .map((issue) => [
+                  issue.organization.id,
+                  issue.organization.name,
+                ])
+            )
+          );
+
+          console.log("Organizations", uniqueOrganizations);
+          setFilteredOrganizationOptions(
+            uniqueOrganizations.map(([id, name]) => ({
+              label: name,
+              value: id,
+            }))
+          );
+
+          // Extract unique categories from issue.category
+          const uniqueCategories = Array.from(
+            new Map(
+              response.data
+                .filter(
+                  (issue) => issue.category?.id && issue.category?.category_name
+                )
+                .map((issue) => [
+                  issue.category.id,
+                  issue.category.category_name,
+                ])
+            )
+          );
+          setFilteredCategoryOptions(
+            uniqueCategories.map(([id, name]) => ({
+              label: name,
+              value: id,
+            }))
+          );
+
           
 
           console.log("Issues", issues);
