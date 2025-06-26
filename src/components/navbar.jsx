@@ -21,6 +21,8 @@ const Navbar=()=>{
         { key:"organizations", label: "Organizations", icon: "pi pi-building",url:'/organizations' },
         { key:"categories", label: "Categories", icon: "pi pi-tag",url:'/categories' },
         { key:"solutions", label: "Solutions", icon: "pi pi-key",url:'/solutions' },
+        { key:"reports", label: "Reports", icon: "pi pi-calendar-clock",url:'/reports' },
+
 
     ];
     const end=[

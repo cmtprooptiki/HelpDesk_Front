@@ -26,6 +26,7 @@ import Category from './pages/category_pages/category.jsx'
 // import "primereact/resources/themes/fluent-light/theme.css";
 import "primereact/resources/themes/lara-light-blue/theme.css";
 import Solution from './pages/solution_pages/solution.jsx'
+import Reports from './pages/Report_pages/reports.jsx'
 // import "primereact/resources/themes/lara-light-indigo/theme.css";
 // import "primereact/resources/themes/lara-light-purple/theme.css";
 // import "primereact/resources/themes/lara-light-teal/theme.css";
@@ -86,6 +87,7 @@ function App() {
               <Route path = "/organizations" element={<ProtectedRoute requiredRole="user"><Organization/></ProtectedRoute>} ></Route>
               <Route path = "/categories" element={<ProtectedRoute requiredRole="user"><Category/></ProtectedRoute>} ></Route>
               <Route path = "/solutions" element={<ProtectedRoute requiredRole="user"><Solution/></ProtectedRoute>} ></Route>
+              <Route path = "/reports" element={<ProtectedRoute requiredRole="user"><Reports/></ProtectedRoute>} ></Route>
 
             </Routes>
           </BrowserRouter>

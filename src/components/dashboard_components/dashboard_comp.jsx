@@ -21,6 +21,7 @@ import { Card } from "primereact/card";
 import { PiListBulletsFill,PiFlagCheckeredFill ,PiClockCountdownBold ,PiXCircleFill ,PiWarningCircleFill, PiCheckCircleFill, PiTimerFill, PiClipboardTextFill } from "react-icons/pi";
 import {BsXCircleFill} from "react-icons/bs"
 import "../../../css/kpis.css"
+import { Divider } from "primereact/divider";
 
 const DashboardComp = () => {
       const {user} =useSelector((state)=>state.auth)
@@ -819,6 +820,9 @@ const renderKPIs = () => {
 
         {newIssue.status === "resolved" && (
           <>
+            <Divider align="center">
+              <span className="p-tag"> Solution</span>
+            </Divider>
             <div className="field">
               <label htmlFor="solution_title">Solution Title</label>
               <InputText
@@ -1046,6 +1050,9 @@ const renderKPIs = () => {
 
         {editIssue.status === "resolved" && (
           <>
+            <Divider align="center">
+              <span className="p-tag">Solution</span>
+            </Divider>
             <div className="field">
               <label htmlFor="edit_solution_title">Solution Title</label>
               <InputText
