@@ -22,6 +22,8 @@ import { PiListBulletsFill,PiFlagCheckeredFill ,PiClockCountdownBold ,PiXCircleF
 import {BsXCircleFill} from "react-icons/bs"
 import "../../../css/kpis.css"
 import { Divider } from "primereact/divider";
+import { FilterMatchMode } from 'primereact/api';
+
 
 const DashboardComp = () => {
       const {user} =useSelector((state)=>state.auth)
@@ -39,6 +41,61 @@ const DashboardComp = () => {
   const [users, setUsers] = useState([]); 
   const [categories, setCategories] = useState([]);
   const [linkedSolution, setLinkedSolution] = useState({ title: "", desc: "", id: null });
+  const [tableFilters, setTableFilters] = useState({
+  global: { value: null, matchMode: FilterMatchMode.CONTAINS },
+  status: { value: null, matchMode: FilterMatchMode.EQUALS },
+  priority: { value: null, matchMode: FilterMatchMode.EQUALS },
+  description: { value: null, matchMode: FilterMatchMode.CONTAINS },
+  started_by: { value: null, matchMode: FilterMatchMode.CONTAINS },
+  assigned_to: { value: null, matchMode: FilterMatchMode.CONTAINS },
+  petitioner_name: { value: null, matchMode: FilterMatchMode.CONTAINS },
+  severity: { value: null, matchMode: FilterMatchMode.EQUALS },
+  contact_type: { value: null, matchMode: FilterMatchMode.EQUALS },
+  contact_value: { value: null, matchMode: FilterMatchMode.CONTAINS },
+  related_to_indicators: { value: null, matchMode: FilterMatchMode.EQUALS },
+  indicator_code: { value: null, matchMode: FilterMatchMode.EQUALS },
+  'organization.id': { value: null, matchMode: FilterMatchMode.EQUALS },
+  'category.id': { value: null, matchMode: FilterMatchMode.EQUALS },
+  startDate: { value: null, matchMode: FilterMatchMode.DATE_IS },
+  endDate: { value: null, matchMode: FilterMatchMode.DATE_IS },
+
+});
+
+const [solutionDialogVisible, setSolutionDialogVisible] = useState(false);
+const [selectedSolution, setSelectedSolution] = useState({ title: "", desc: "" });
+
+const [indicatorFilterOptions, setIndicatorFilterOptions] = useState([]);
+const [filteredOrganizationOptions, setFilteredOrganizationOptions] = useState([]);
+const [filteredCategoryOptions, setFilteredCategoryOptions] = useState([]);
+
+
+
+
+const handleViewSolution = async (issueId) => {
+  try {
+    const response = await axios.get(`${apiBaseUrl}/issues/${issueId}`);
+    const issue = response.data;
+
+    if (issue.solution_id) {
+      const solRes = await axios.get(`${apiBaseUrl}/solutions/${issue.solution_id}`);
+      const sol = solRes.data;
+
+      setSelectedSolution({
+        title: sol.solution_title,
+        desc: sol.solution_desc,
+      });
+
+      setSolutionDialogVisible(true);
+    } else {
+      alert("This resolved issue does not have a linked solution.");
+    }
+  } catch (error) {
+    console.error("Error fetching solution:", error);
+    alert("Could not load the solution.");
+  }
+};
+
+
  
   useEffect(()=>{
 
@@ -145,15 +202,79 @@ const indicatorOptions = indicators.map(ind => ({
     ///REQUEST USERS FROM SERVER AND SET CONST
     const getIssues = async() =>{
         try {
-            const response = await axios.get(`${apiBaseUrl}/issues`, {timeout: 5000});
-            setIssues(response.data);
+          const response = await axios.get(`${apiBaseUrl}/issues`, {
+            timeout: 5000,
+          });
 
-            console.log("Issues", response.data)
-            
-            // console.log("roles2",uniqueRole)
-            // console.log(response.data)
+          const issuesWithDates = response.data.map((issue) => ({
+            ...issue,
+            startDate: issue.startDate ? new Date(issue.startDate) : null,
+            endDate: issue.endDate ? new Date(issue.endDate) : null,
+          }));
 
-            
+          setIssues(issuesWithDates);
+
+          const uniqueUsedIndicatorCodes = [
+            ...new Set(
+              response.data
+                .map((issue) => issue.indicator_code)
+                .filter((code) => code)
+            ),
+          ];
+
+          const usedIndicatorOptions = uniqueUsedIndicatorCodes.map((code) => ({
+            label: code,
+            value: code,
+          }));
+
+          setIndicatorFilterOptions(usedIndicatorOptions);
+
+          // Extract unique organizations from issue.organization
+          const uniqueOrganizations = Array.from(
+            new Map(
+              response.data
+                .filter(
+                  (issue) => issue.organization?.id && issue.organization?.name
+                )
+                .map((issue) => [
+                  issue.organization.id,
+                  issue.organization.name,
+                ])
+            )
+          );
+
+          console.log("Organizations", uniqueOrganizations);
+          setFilteredOrganizationOptions(
+            uniqueOrganizations.map(([id, name]) => ({
+              label: name,
+              value: id,
+            }))
+          );
+
+          // Extract unique categories from issue.category
+          const uniqueCategories = Array.from(
+            new Map(
+              response.data
+                .filter(
+                  (issue) => issue.category?.id && issue.category?.category_name
+                )
+                .map((issue) => [
+                  issue.category.id,
+                  issue.category.category_name,
+                ])
+            )
+          );
+          setFilteredCategoryOptions(
+            uniqueCategories.map(([id, name]) => ({
+              label: name,
+              value: id,
+            }))
+          );
+
+          console.log("Issues", issues);
+
+          // console.log("roles2",uniqueRole)
+          // console.log(response.data)
         } catch (error) {
             console.log("Custom error message: Failed to fetch issues");
 
@@ -169,15 +290,39 @@ const indicatorOptions = indicators.map(ind => ({
 
     const getIssuesByUser = async() =>{
         try {
-            const response = await axios.get(`${apiBaseUrl}/issues/user/${user.id}`, {timeout: 5000});
-            setIssues(response.data);
+          const response = await axios.get(
+            `${apiBaseUrl}/issues/user/${user.id}`,
+            { timeout: 5000 }
+          );
 
-            console.log("Issues", response.data)
-            
-            // console.log("roles2",uniqueRole)
-            // console.log(response.data)
+          const issuesWithDates = response.data.map((issue) => ({
+            ...issue,
+            startDate: issue.startDate ? new Date(issue.startDate) : null,
+            endDate: issue.endDate ? new Date(issue.endDate) : null,
+          }));
+          setIssues(issuesWithDates);
 
-            
+          const uniqueUsedIndicatorCodes = [
+            ...new Set(
+              response.data
+                .map((issue) => issue.indicator_code)
+                .filter((code) => code)
+            ),
+          ];
+
+          const usedIndicatorOptions = uniqueUsedIndicatorCodes.map((code) => ({
+            label: code,
+            value: code,
+          }));
+
+          setIndicatorFilterOptions(usedIndicatorOptions);
+
+          
+
+          console.log("Issues", issues);
+
+          // console.log("roles2",uniqueRole)
+          // console.log(response.data)
         } catch (error) {
             console.log("Custom error message: Failed to fetch issues");
 
@@ -369,24 +514,36 @@ const indicatorOptions = indicators.map(ind => ({
   ///ACTION BUTTONS FUNCTION
     const actionsBodyTemplate=(rowData)=>{
         const id=rowData.id
-        return(
-
-            <div className=" flex flex-wrap justify-content-center gap-3">
-               
-                {user && user.role!=="admin" &&(
-                    <div>
-                    </div>
-                )}
-                <span className='flex gap-1'>
-                
-                    <Button className='action-button' outlined  icon="pi pi-pen-to-square" aria-label="Εdit" onClick={()=> openEditDialog(id)}/>
-                    <Button className='action-button' outlined icon="pi pi-trash" severity="danger" aria-label="delete" onClick={()=>deleteIssue(id)} />
-                </span>
-            
-                
-
-            </div>
- 
+        return (
+          <div className=" flex flex-wrap justify-content-center gap-3">
+            {user && user.role !== "admin" && <div></div>}
+            <span className="flex gap-1">
+              <Button
+                className="action-button"
+                outlined
+                icon="pi pi-pen-to-square"
+                aria-label="Εdit"
+                onClick={() => openEditDialog(id)}
+              />
+              <Button
+                className="action-button"
+                outlined
+                icon="pi pi-trash"
+                severity="danger"
+                aria-label="delete"
+                onClick={() => deleteIssue(id)}
+              />
+              {rowData.status === "resolved" && (
+                <Button
+                  className="action-button"
+                  outlined
+                  icon="pi pi-key"
+                  severity="info"
+                  onClick={() => handleViewSolution(id)}
+                />
+              )}
+            </span>
+          </div>
         );
     }
 
@@ -431,6 +588,121 @@ const priorityTemplate = (rowData) => (
     }
   />
 );
+
+const statusFilterTemplate = (options) => (
+  <Dropdown
+    value={options.value}
+    options={statusOptions}
+    onChange={(e) => options.filterCallback(e.value, options.index)}
+    placeholder="All"
+    className="p-column-filter"
+    showClear
+  />
+);
+
+const priorityFilterTemplate = (options) => (
+  <Dropdown
+    value={options.value}
+    options={priorityOptions}
+    onChange={(e) => options.filterCallback(e.value, options.index)}
+    placeholder="All"
+    className="p-column-filter"
+    showClear
+  />
+);
+
+const severityFilterTemplate = (options) => (
+  <Dropdown
+    value={options.value}
+    options={severityOptions}
+    onChange={(e) => options.filterCallback(e.value, options.index)}
+    placeholder="All"
+    className="p-column-filter"
+    showClear
+  />
+);
+
+const contactTypeFilterTemplate = (options) => (
+  <Dropdown
+    value={options.value}
+    options={contactTypeOptions}
+    onChange={(e) => options.filterCallback(e.value, options.index)}
+    placeholder="All"
+    className="p-column-filter"
+    showClear
+  />
+);
+
+const relatedToIndicatorsFilterTemplate = (options) => (
+  <Dropdown
+    value={options.value}
+    options={["Yes", "No"].map(val => ({ label: val, value: val }))}
+    onChange={(e) => options.filterCallback(e.value, options.index)}
+    placeholder="All"
+    className="p-column-filter"
+    showClear
+  />
+);
+
+const indicatorOptionsFilterTemplate = (options) => (
+  <Dropdown
+    value={options.value}
+    options={indicatorFilterOptions}
+    onChange={(e) => options.filterCallback(e.value, options.index)}
+    placeholder="All"
+    className="p-column-filter"
+    showClear
+  />
+);
+
+const organizationsFilterTemplate = (options) => (
+  <Dropdown
+    value={options.value}
+    options={filteredOrganizationOptions}
+    onChange={(e) => options.filterCallback(e.value, options.index)}
+    placeholder="All"
+    className="p-column-filter"
+    showClear
+  />
+);
+
+// console.log("Organizations", organizationOptions);
+const categoryFilterTemplate = (options) => (
+  <Dropdown
+    value={options.value}
+    options={filteredCategoryOptions}
+    onChange={(e) => options.filterCallback(e.value, options.index)}
+    placeholder="All"
+    className="p-column-filter"
+    showClear
+  />
+);
+
+const userOptionsFilterTemplate = (options) => (
+  <Dropdown
+    value={options.value}
+    options={userOptions}
+    optionLabel="label"
+    optionValue="label"  // Only store the name (string) in filters
+    onChange={(e) => options.filterCallback(e.value, options.index)}
+    placeholder="All"
+    className="p-column-filter"
+    showClear
+  />
+);
+
+const dateFilterTemplate = (options) => (
+  <Calendar
+    value={options.value}
+    onChange={(e) => options.filterCallback(e.value, options.index)}
+    placeholder="Select date"
+    className="p-column-filter"
+    dateFormat="dd/mm/yy"
+    showIcon
+    showButtonBar
+  />
+);
+
 
 
 const renderKPIs = () => {
@@ -494,7 +766,7 @@ const renderKPIs = () => {
       </div>
       {renderKPIs()} {/* <-- Add this line here */}
       <div className="flex flex-wrap gap-3 mb-3">
-        <Dropdown
+        {/* <Dropdown
           value={filters.status}
           options={statusOptions}
           onChange={(e) => setFilters({ ...filters, status: e.value })}
@@ -505,11 +777,18 @@ const renderKPIs = () => {
           options={priorityOptions}
           onChange={(e) => setFilters({ ...filters, priority: e.value })}
           placeholder="Select Priority"
-        />
+        /> */}
         <InputText
-          value={filters.keyword}
-          onChange={(e) => setFilters({ ...filters, keyword: e.target.value })}
-          placeholder="Search..."
+          placeholder="Global Search"
+          onInput={(e) =>
+            setTableFilters((prev) => ({
+              ...prev,
+              global: {
+                value: e.target.value,
+                matchMode: FilterMatchMode.CONTAINS,
+              },
+            }))
+          }
         />
       </div>
       {/* <DataTable value={filteredIssues} paginator rows={5} className="p-datatable-sm">
@@ -523,6 +802,25 @@ const renderKPIs = () => {
         value={filteredIssues}
         paginator
         rows={10}
+        filters={tableFilters}
+        onFilter={(e) => setTableFilters(e.filters)}
+        globalFilterFields={[
+          "description",
+          "status",
+          "priority",
+          "started_by",
+          "severity",
+          "assigned_to",
+          "petitioner_name",
+          "contact_type",
+          "contact_value",
+          "related_to_indicators",
+          "indicator_code",
+          "organization.id",
+          "category.id",
+          "startDate",
+          "endDate",
+        ]}
         className="p-datatable-sm"
         scrollable
         scrollHeight="600px"
@@ -532,18 +830,24 @@ const renderKPIs = () => {
         <Column
           field="description"
           header="Description"
+          filter
+          filterPlaceholder="Search by description"
           style={{ minWidth: "12rem" }}
         />
         <Column
           field="priority"
           header="Priority"
           body={priorityTemplate}
+          filter
+          filterElement={priorityFilterTemplate}
           style={{ minWidth: "8rem" }}
         />
         <Column
           field="status"
           header="Status"
           body={statusTemplate}
+          filter
+          filterElement={statusFilterTemplate}
           style={{ minWidth: "8rem" }}
         />
 
@@ -551,58 +855,84 @@ const renderKPIs = () => {
           field="severity"
           header="Severity"
           body={severityTemplate}
+          filter
+          filterElement={severityFilterTemplate}
           style={{ minWidth: "8rem" }}
         />
 
         <Column
           field="started_by"
           header="Started By"
+          filter
+          filterElement={userOptionsFilterTemplate}
+          body={(rowData) => rowData.started_by || user?.name} // display started
           style={{ minWidth: "10rem" }}
         />
         <Column
           field="assigned_to"
           header="Assigned To"
           style={{ minWidth: "10rem" }}
+          filter
+          filterElement={userOptionsFilterTemplate}
+          body={(rowData) => rowData.assigned_to || user?.name}
         />
         <Column
           field="petitioner_name"
           header="Petitioner"
+          filter
+          filterPlaceholder="Search by petitioner"
           style={{ minWidth: "10rem" }}
         />
         <Column
           field="contact_type"
           header="Contact Type"
           style={{ minWidth: "8rem" }}
+          filter
+          filterElement={contactTypeFilterTemplate}
         />
         <Column
           field="contact_value"
           header="Contact Value"
           style={{ minWidth: "12rem" }}
+          filter
+          filterPlaceholder="Search by contact value"
         />
         <Column
           field="related_to_indicators"
           header="Related Indicators"
           style={{ minWidth: "12rem" }}
+          filter
+          filterElement={relatedToIndicatorsFilterTemplate}
         />
         <Column
           field="indicator_code"
           header="Indicator Code"
           style={{ minWidth: "10rem" }}
+          filter
+          filterElement={indicatorOptionsFilterTemplate}
         />
         <Column
-          field="organization.name"
-          header="Organization Name "
-          style={{ minWidth: "6rem" }}
+          field="organization.id" // filter by ID
+          header="Organization"
+          filter
+          filterElement={organizationsFilterTemplate}
+          body={(rowData) => rowData.organization?.name} // display name
         />
         <Column
-          field="category.category_name"
+          field="category.id"
           header="Category Name"
           style={{ minWidth: "6rem" }}
+          filter
+          filterElement={categoryFilterTemplate}
+          body={(rowData) => rowData.category?.category_name}
         />
         <Column
           field="startDate"
           header="Start Date"
           style={{ minWidth: "6rem" }}
+          filter
+          filterElement={dateFilterTemplate}
+          dataType="date"
           body={(rowData) =>
             rowData.startDate
               ? new Date(rowData.startDate).toLocaleDateString("en-GB")
@@ -614,6 +944,9 @@ const renderKPIs = () => {
           field="endDate"
           header="End Date"
           style={{ minWidth: "6rem" }}
+          filter
+          filterElement={dateFilterTemplate}
+          dataType="date"
           body={(rowData) =>
             rowData.endDate
               ? new Date(rowData.endDate).toLocaleDateString("en-GB")
@@ -1116,6 +1449,26 @@ const renderKPIs = () => {
             onClick={updateIssue}
             autoFocus
           />
+        </div>
+      </Dialog>
+      <Dialog
+        header="Solution Details"
+        visible={solutionDialogVisible}
+        onHide={() => setSolutionDialogVisible(false)}
+        style={{ width: "40vw" }}
+        modal
+      >
+        <div className="p-3">
+          <div className="mb-3">
+            <h5 className="text-primary">Solution Title</h5>
+            <p>
+              <strong>{selectedSolution.title || "No title provided"}</strong>
+            </p>
+          </div>
+          <div>
+            <h5 className="text-primary">Solution Description</h5>
+            <p>{selectedSolution.desc || "No description provided"}</p>
+          </div>
         </div>
       </Dialog>
     </div>
