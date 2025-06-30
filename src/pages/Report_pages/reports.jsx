@@ -31,7 +31,7 @@ const Reports = () => {
     <>
     <Navbar/>
     <Layout>
-        <ReportList/>
+        {/* <ReportList/> */}
     </Layout>
     <Layout>
         <ReportAssistant/>
