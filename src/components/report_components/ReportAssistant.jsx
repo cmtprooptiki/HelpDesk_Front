@@ -14,6 +14,8 @@ import { Document,
   ImageRun} from "docx";
 import { saveAs } from "file-saver";
 import html2canvas from "html2canvas";
+import { Calendar } from "primereact/calendar";
+import { addLocale } from "primereact/api"; // Import addLocale from PrimeReact
 
 function ReportAssistant() {
   const [rawJson, setRawJson] = useState("");
@@ -23,10 +25,38 @@ function ReportAssistant() {
 const [analysis, setAnalysis] = useState("");
 
   
-const [selectedMonth, setSelectedMonth] = useState(() => {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+// const [selectedMonth, setSelectedMonth] = useState(() => {
+//   const now = new Date();
+//   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+// });
+
+
+
+ const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    now.setDate(1); // ensure consistency in month view
+    return now;
+  });
+
+  const formatted = `${selectedMonth.getFullYear()}-${String(selectedMonth.getMonth() + 1).padStart(2, '0')}`;
+  addLocale('custom', {
+  monthNames: [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ],
+  monthNamesShort: [
+    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+  ],
+  dayNames: [],         // not used, but required
+  dayNamesShort: [],
+  dayNamesMin: [],
+  firstDayOfWeek: 0,
+  today: '',
+  clear: ''
 });
+
+console.log("Selected month:", formatted); // Debugging line
 
   const handleGroup = async () => {
     setLoading(true);
@@ -34,7 +64,7 @@ const [selectedMonth, setSelectedMonth] = useState(() => {
     setChartData(null);
 
     try {
-      const response = await axios.get(`${apiBaseUrl}/reports/assistant?month=${selectedMonth}`);
+      const response = await axios.get(`${apiBaseUrl}/reports/assistant?month=${formatted}`);
 
       const json = response.data;
 
@@ -304,15 +334,26 @@ const exportToDocx = async () => {
   return (
     <div className="p-4 max-w-3xl mx-auto">
       <h1 className="text-xl font-bold mb-4">AI Issue Grouping Report</h1>
-   <div className="mb-4">
-  <label className="font-medium mr-2">Select Month:</label>
-  <input
+      <div className="mb-4">
+        <label className="font-medium mr-2">Select Month:</label>
+        {/* <input
     type="month"
     value={selectedMonth}
     onChange={(e) => setSelectedMonth(e.target.value)}
     className="border rounded px-2 py-1"
-  />
-</div>
+  /> */}
+
+        <Calendar
+          value={selectedMonth}
+          onChange={(e) => setSelectedMonth(e.value)}
+          view="month"
+          dateFormat="MM yy" // shows as "July 2025"
+          locale="custom" // uses full month names
+          showIcon
+          className="w-full"
+          touchUI // optional: mobile-friendly full screen mode
+        />
+      </div>
       <button
         onClick={handleGroup}
         disabled={loading}
@@ -322,49 +363,55 @@ const exportToDocx = async () => {
       </button>
 
       <button
-  onClick={generateAnalysis}
-  disabled={!chartData}
-  className="ml-2 px-4 py-2 bg-purple-600 text-white rounded"
->
-  Generate Insights
-</button>
+        onClick={generateAnalysis}
+        disabled={!chartData}
+        className="ml-2 px-4 py-2 bg-purple-600 text-white rounded"
+      >
+        Generate Insights
+      </button>
       <button
-  onClick={exportToDocx}
-  disabled={!rawJson}
-  className="ml-2 px-4 py-2 bg-green-600 text-white rounded"
->
-  Export to .docx
-</button>
-
+        onClick={exportToDocx}
+        disabled={!rawJson}
+        className="ml-2 px-4 py-2 bg-green-600 text-white rounded"
+      >
+        Export to .docx
+      </button>
 
       {rawJson && (
         <div className="mt-6">
           <h2 className="font-semibold mb-2">📋 JSON Output:</h2>
-          <InputTextarea value={rawJson} rows={12} className="w-full" readOnly autoResize />
+          <InputTextarea
+            value={rawJson}
+            rows={12}
+            className="w-full"
+            readOnly
+            autoResize
+          />
         </div>
       )}
 
       {chartData && (
         <div className="mt-8">
           <h2 className="font-semibold mb-2">📊 Group Distribution:</h2>
-        <div ref={chartRef}>
-
-          <Chart
-            options={chartData.options}
-            series={chartData.series}
-            type="pie"
-            width="50%"
-          />
-        </div>
+          <div ref={chartRef}>
+            <Chart
+              options={chartData.options}
+              series={chartData.series}
+              type="pie"
+              width="50%"
+            />
+          </div>
         </div>
       )}
 
       {analysis && (
-  <div className="mt-8">
-    <h2 className="font-semibold mb-2">🧠 AI Insights:</h2>
-    <p className="bg-gray-100 p-4 rounded whitespace-pre-wrap">{analysis}</p>
-  </div>
-)}
+        <div className="mt-8">
+          <h2 className="font-semibold mb-2">🧠 AI Insights:</h2>
+          <p className="bg-gray-100 p-4 rounded whitespace-pre-wrap">
+            {analysis}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
