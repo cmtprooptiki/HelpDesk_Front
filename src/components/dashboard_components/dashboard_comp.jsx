@@ -560,6 +560,15 @@ const indicatorOptions = indicators.map(ind => ({
           <div className=" flex flex-wrap justify-content-center gap-3">
             {user && user.role !== "admin" && <div></div>}
             <span className="flex gap-1">
+              {rowData.solution_id !== null && (
+                <Button
+                  className="action-button"
+                  outlined
+                  icon="pi pi-key"
+                  severity="success"
+                  onClick={() => handleViewSolution(id)}
+                />
+              )}
               <Button
                 className="action-button"
                 outlined
@@ -575,15 +584,7 @@ const indicatorOptions = indicators.map(ind => ({
                 aria-label="delete"
                 onClick={() => deleteIssue(id)}
               />
-              {rowData.status === "resolved" && (
-                <Button
-                  className="action-button"
-                  outlined
-                  icon="pi pi-key"
-                  severity="info"
-                  onClick={() => handleViewSolution(id)}
-                />
-              )}
+              
             </span>
           </div>
         );
@@ -756,13 +757,13 @@ const renderKPIs = () => {
   const critical = issues.filter(i => i.severity === "critical").length;
 
   const kpis = [
-    { label: "Total Issues", value: total, icon: <PiListBulletsFill className="text-blue-500 text-3xl" />, bg: "blue", },
-    { label: "Open", value: open, icon: <PiFlagCheckeredFill  className="text-yellow-500 text-3xl" />, bg: "yellow" },
+    { label: "Total Issues", value: total, icon: <PiListBulletsFill className="text-blue-500 text-3xl" />, bg: "#75a7f9", },
+    { label: "Open", value: open, icon: <PiFlagCheckeredFill  className="text-yellow-500 text-3xl" />, bg: "#f0ca52" },
 
-    { label: "In Progress", value: inprogress, icon: <PiClockCountdownBold  className="text-purple-500 text-3xl" />, bg: "purple" },
-    { label: "Resolved", value: resolved, icon: <PiCheckCircleFill className="text-green-500 text-3xl" />, bg: "green" },
-   { label: "Unresolved", value: unresolved, icon: <PiXCircleFill   className="text-red-500 text-3xl" />, bg: "red" },
-    { label: "Critical", value: critical, icon: <PiWarningCircleFill className="text-red-500 text-3xl" />, bg: "red" }
+    { label: "In Progress", value: inprogress, icon: <PiClockCountdownBold  className="text-purple-500 text-3xl" />, bg: "#c288f9" },
+    { label: "Resolved", value: resolved, icon: <PiCheckCircleFill className="text-green-500 text-3xl" />, bg: "#64d68e" },
+   { label: "Unresolved", value: unresolved, icon: <PiXCircleFill   className="text-red-500 text-3xl" />, bg: "#ff776f" },
+    { label: "Critical", value: critical, icon: <PiWarningCircleFill className="text-red-500 text-3xl" />, bg: "#ff776f" }
   ];
 
   return (
@@ -843,7 +844,7 @@ const renderKPIs = () => {
       <DataTable
         value={filteredIssues}
         paginator
-        rows={10}
+        rows={5}
         filters={tableFilters}
         onFilter={(e) => setTableFilters(e.filters)}
         globalFilterFields={[
@@ -864,8 +865,8 @@ const renderKPIs = () => {
           "endDate",
         ]}
         className="p-datatable-sm"
-        scrollable
-        scrollHeight="600px"
+        // scrollable
+        // scrollHeight="600px"
         emptyMessage="No issues found"
       >
         <Column field="id" header="ID" style={{ width: "4em" }} />
@@ -1039,9 +1040,19 @@ const renderKPIs = () => {
             <Dropdown
               value={newIssue.status}
               options={statusOptions}
-              onChange={(e) => setNewIssue({ ...newIssue, status: e.value })}
+              onChange={
+                (e) => {
+                  if(e.value==="open" || e.value==="in-progress"){
+                    setNewIssue({ ...newIssue, status: e.value,endDate:null })
+
+                  }else{
+                    setNewIssue({ ...newIssue, status: e.value})
+                  }
+                }
+              }
               placeholder="Select Status"
             />
+            
           </div>
         </div>
 
@@ -1233,6 +1244,9 @@ const renderKPIs = () => {
             onChange={(e) => setNewIssue({ ...newIssue, endDate: e.value })}
             placeholder="Select an End Date"
           />
+          {((newIssue.status ==="resolved" && newIssue.endDate===null) || (newIssue.status ==="unresolved" && newIssue.endDate===null)) && (
+              <small className="p-error">End Date is required when status is resolved or unresolved.</small>
+            )}
         </div>
 
         <div className="flex justify-content-end mt-3">
@@ -1242,9 +1256,15 @@ const renderKPIs = () => {
             className="p-button-text mr-2"
             onClick={() => setIssueDialog(false)}
           />
-          <Button label="Add" icon="pi pi-check" onClick={addIssue} autoFocus />
+          <Button label="Add" icon="pi pi-check" onClick={addIssue} autoFocus 
+          disabled={ (newIssue.status ==="resolved" && newIssue.endDate===null) || (newIssue.status ==="unresolved" && newIssue.endDate===null)}
+          />
         </div>
       </Dialog>
+
+
+
+      {/* DIALOG EDIT*/}
       <Dialog
         header="Edit Issue"
         visible={editDialogVisible}
@@ -1281,7 +1301,16 @@ const renderKPIs = () => {
             <Dropdown
               value={editIssue.status}
               options={statusOptions}
-              onChange={(e) => setEditIssue({ ...editIssue, status: e.value })}
+              onChange={
+                (e) => {
+                  if(e.value==="open" || e.value==="in-progress"){
+                    setEditIssue({ ...editIssue, status: e.value,endDate:null })
+
+                  }else{
+                    setEditIssue({ ...editIssue, status: e.value})
+                  }
+                }
+              }
             />
           </div>
         </div>
@@ -1423,6 +1452,29 @@ const renderKPIs = () => {
           />
         </div>
 
+        <div className="field">
+          <label htmlFor="startDate">Started Date</label>
+          <Calendar
+            id="startDate"
+            value={editIssue.startDate ? new Date(editIssue.startDate) : null}
+            onChange={(e) => setEditIssue({ ...editIssue, startDate: e.value })}
+            placeholder="Select a Start Date"
+          />
+        </div>
+
+        <div className="field">
+          <label htmlFor="endDate">End Date</label>
+          <Calendar
+            id="endDate"
+            value={editIssue.endDate ? new Date(editIssue.endDate) : null}
+            onChange={(e) => setEditIssue({ ...editIssue, endDate: e.value })}
+            placeholder="Select an End Date"
+          />
+          {((editIssue.status ==="resolved" && editIssue.endDate===null) || (editIssue.status ==="unresolved" && editIssue.endDate===null)) && (
+              <small className="p-error">End Date is required when status is resolved or unresolved.</small>
+            )}
+        </div>
+
         {editIssue.status === "resolved" && (
           <>
             <Divider align="center">
@@ -1458,25 +1510,7 @@ const renderKPIs = () => {
           </>
         )}
 
-        <div className="field">
-          <label htmlFor="startDate">Started Date</label>
-          <Calendar
-            id="startDate"
-            value={editIssue.startDate ? new Date(editIssue.startDate) : null}
-            onChange={(e) => setEditIssue({ ...editIssue, startDate: e.value })}
-            placeholder="Select a Start Date"
-          />
-        </div>
-
-        <div className="field">
-          <label htmlFor="endDate">End Date</label>
-          <Calendar
-            id="endDate"
-            value={editIssue.endDate ? new Date(editIssue.endDate) : null}
-            onChange={(e) => setEditIssue({ ...editIssue, endDate: e.value })}
-            placeholder="Select an End Date"
-          />
-        </div>
+        
 
         <div className="flex justify-content-end mt-3">
           <Button
@@ -1490,6 +1524,7 @@ const renderKPIs = () => {
             icon="pi pi-check"
             onClick={updateIssue}
             autoFocus
+            disabled={(editIssue.status ==="resolved" && editIssue.endDate===null) || (editIssue.status ==="unresolved" && editIssue.endDate===null)}
           />
         </div>
       </Dialog>

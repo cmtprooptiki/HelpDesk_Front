@@ -41,7 +41,7 @@ const Login = () => {
                 <div>
                     <div className='input_block'>
                         <label htmlFor="email"  className="block text-lg font-medium mb-2">email</label>
-                        <InputText className="w-full p-3 text-lg border border-gray-300 rounded-md" id="email" name='email' autocomplete="on" type="text" value={email} onChange={(e)=>setEmail(e.target.value)} placeholder='email'/>
+                        <InputText className="w-full p-3 text-lg border border-gray-300 rounded-md" id="email" name='email' autoComplete="on" type="text" value={email} onChange={(e)=>setEmail(e.target.value)} placeholder='email'/>
                     </div>
                     <div className='input_block'>
                         <label htmlFor="email"  className="block text-lg font-medium mb-2">password</label>
