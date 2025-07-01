@@ -25,7 +25,7 @@ const EditUser = () => {
   // },[isError,user,navigate]);
   return (
     <>
-      <Navbar />
+      {/* <Navbar /> */}
 
       <Layout>
         <FormEditUser />
