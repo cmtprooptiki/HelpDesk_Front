@@ -13,6 +13,7 @@ import { useSelector,useDispatch } from 'react-redux'
 import ProtectedRoute from './components/protected_route.jsx'
 import Organization from './pages/organization_pages/organization.jsx'
 import Category from './pages/category_pages/category.jsx'
+import AppRoutes from './AppRoutes.jsx'
 
 
 // 📌 Light Themes
@@ -27,6 +28,7 @@ import Category from './pages/category_pages/category.jsx'
 import "primereact/resources/themes/lara-light-blue/theme.css";
 import Solution from './pages/solution_pages/solution.jsx'
 import Reports from './pages/Report_pages/reports.jsx'
+import Navbar from './components/navbar.jsx'
 // import "primereact/resources/themes/lara-light-indigo/theme.css";
 // import "primereact/resources/themes/lara-light-purple/theme.css";
 // import "primereact/resources/themes/lara-light-teal/theme.css";
@@ -67,34 +69,15 @@ import Reports from './pages/Report_pages/reports.jsx'
 
 
 function App() {
-  const value={
-    ripple:true,
-  };
+  const value = { ripple: true };
 
-  const { user } = useSelector((state) => state.auth);
   return (
-    <>
-
-      <div>
-        <PrimeReactProvider value={value}>
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Login/>} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/users" element={<ProtectedRoute requiredRole="user"><Users/></ProtectedRoute>} />
-              <Route path="/users/add" element={<ProtectedRoute requiredRole="user"><AddUser/></ProtectedRoute>}></Route>
-              <Route path="/users/edit/:id" element={<ProtectedRoute requiredRole="user"><EditUser/></ProtectedRoute>}></Route>
-              <Route path = "/organizations" element={<ProtectedRoute requiredRole="user"><Organization/></ProtectedRoute>} ></Route>
-              <Route path = "/categories" element={<ProtectedRoute requiredRole="user"><Category/></ProtectedRoute>} ></Route>
-              <Route path = "/solutions" element={<ProtectedRoute requiredRole="user"><Solution/></ProtectedRoute>} ></Route>
-              <Route path = "/reports" element={<ProtectedRoute requiredRole="user"><Reports/></ProtectedRoute>} ></Route>
-
-            </Routes>
-          </BrowserRouter>
-        </PrimeReactProvider>
-      </div>
-    </>
-  )
+    <PrimeReactProvider value={value}>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+    </PrimeReactProvider>
+  );
 }
 
-export default App
+export default App;

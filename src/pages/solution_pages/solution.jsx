@@ -29,7 +29,7 @@ const Solution = () => {
   // },[isError,user,navigate]);
   return (
     <>
-    <Navbar/>
+    {/* <Navbar/> */}
     <Layout>
         <SolutionList/>
     </Layout>

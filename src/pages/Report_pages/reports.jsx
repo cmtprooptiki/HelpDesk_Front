@@ -29,7 +29,7 @@ const Reports = () => {
   // },[isError,user,navigate]);
   return (
     <>
-    <Navbar/>
+    {/* <Navbar/> */}
     <Layout>
         {/* <ReportList/> */}
     </Layout>

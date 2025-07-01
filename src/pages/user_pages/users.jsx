@@ -27,7 +27,7 @@ const Users = () => {
   // },[isError,user,navigate]);
   return (
     <>
-    <Navbar/>
+    {/* <Navbar/> */}
     <Layout>
         <UserList/>
     </Layout>

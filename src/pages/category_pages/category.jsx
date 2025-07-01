@@ -28,7 +28,7 @@ const Category = () => {
   // },[isError,user,navigate]);
   return (
     <>
-    <Navbar/>
+    {/* <Navbar/> */}
     <Layout>
         <CategoryList/>
     </Layout>

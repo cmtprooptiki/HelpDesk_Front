@@ -28,7 +28,7 @@ const Organization = () => {
   // },[isError,user,navigate]);
   return (
     <>
-    <Navbar/>
+    {/* <Navbar/> */}
     <Layout>
         <OrganizationList/>
     </Layout>
