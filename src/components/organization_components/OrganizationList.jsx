@@ -15,6 +15,7 @@ import axios from "axios";
 import { useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 import { MultiSelect } from "primereact/multiselect";
+import { FilterMatchMode } from 'primereact/api';
 
 const OrganizationList = () => {
       const {user} =useSelector((state)=>state.auth)
@@ -28,6 +29,17 @@ const OrganizationList = () => {
   const [editOrganization, setEditOrganization] = useState({});  // prefill with same structure as newOrganization
   const [organizations, setOrganizations] = useState([]);
 
+  const [tableFilters, setTableFilters] = useState({
+    global: { value: null, matchMode: FilterMatchMode.CONTAINS },
+    name: { value: null, matchMode: FilterMatchMode.CONTAINS },
+    address: { value: null, matchMode: FilterMatchMode.CONTAINS },
+    description: { value: null, matchMode: FilterMatchMode.CONTAINS },
+    postal_code: { value: null, matchMode: FilterMatchMode.CONTAINS },
+    phone_number: { value: null, matchMode: FilterMatchMode.CONTAINS },
+    email: { value: null, matchMode: FilterMatchMode.CONTAINS },
+    mobile_number: { value: null, matchMode: FilterMatchMode.CONTAINS },
+    website: { value: null, matchMode: FilterMatchMode.CONTAINS },
+  });
 
   // useEffect(() => {
   //   const storedOrganizations = JSON.parse(localStorage.getItem("Organizations")) || [];
@@ -203,6 +215,19 @@ const OrganizationList = () => {
         />
       </div>
       <div className="flex flex-wrap gap-3 mb-3">
+
+        <InputText
+                  placeholder="Global Search"
+                  onInput={(e) =>
+                    setTableFilters((prev) => ({
+                      ...prev,
+                      global: {
+                        value: e.target.value,
+                        matchMode: FilterMatchMode.CONTAINS,
+                      },
+                    }))
+                  }
+                />
         {/* <Dropdown
           value={filters.status}
           options={statusOptions}
@@ -234,50 +259,77 @@ const OrganizationList = () => {
         paginator
         rows={10}
         className="p-datatable-sm"
+        filters={tableFilters}
         scrollable
         scrollHeight="600px"
         emptyMessage="No Organizations found"
+        globalFilterFields={[
+          "name",
+          "address",
+          "postal_code",
+          "phone_number",
+          "email",
+          "mobile_number",
+          "website",
+          "description",
+        ]}
       >
         <Column field="id" header="ID" style={{ width: "4em" }} />
         <Column
           field="name"
           header="Name"
           style={{ minWidth: "12rem" }}
+          filter
+          filterPlaceholder="Search by Name"
         />
         <Column
           field="address"
           header="Address"
           style={{ minWidth: "8rem" }}
+          filter
+          filterPlaceholder="Search by Address"
         />
         <Column
           field="postal_code"
           header="Postal Code"
           style={{ minWidth: "8rem" }}
+          filter
+          filterPlaceholder="Search by Postal Code"
         />
         <Column
           field="phone_number"
           header="Phone Number"
           style={{ minWidth: "10rem" }}
+          filter
+          filterPlaceholder="Search by Phone Number"
         />
         <Column
           field="email"
           header="Email"
           style={{ minWidth: "10rem" }}
+          filter
+          filterPlaceholder="Search by Email"
         />
         <Column
           field="mobile_number"
           header="Mobile Number"
           style={{ minWidth: "10rem" }}
+          filter
+          filterPlaceholder="Search by Mobile Number"
         />
         <Column
           field="website"
           header="Website"
           style={{ minWidth: "8rem" }}
+          filter
+          filterPlaceholder="Search by Website"
         />
         <Column
           field="description"
           header="Description"
           style={{ minWidth: "12rem" }}
+          filter
+          filterPlaceholder="Search by Description"
         />
         <Column
           header="actions"
