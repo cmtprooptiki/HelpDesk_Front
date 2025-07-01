@@ -1,0 +1,12 @@
+.active-menu-item {
+    font-weight: bold;
+    color: var(--primary-color); /* or any color you want */
+}
+.active-menu-item .p-menuitem-text {
+    font-weight: bold;
+    color: var(--primary-color) !important;
+}
+.active-menu-item .p-menuitem-icon {
+    font-weight: bold;
+    color: var(--primary-color) !important;
+}
