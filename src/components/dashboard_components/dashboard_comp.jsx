@@ -1204,6 +1204,19 @@ const renderKPIs = () => {
           />
         </div>
 
+        <div className="field">
+          <label htmlFor="endDate">End Date</label>
+          <Calendar
+            id="endDate"
+            value={newIssue.endDate}
+            onChange={(e) => setNewIssue({ ...newIssue, endDate: e.value })}
+            placeholder="Select an End Date"
+          />
+          {((newIssue.status ==="resolved" && newIssue.endDate===null) || (newIssue.status ==="unresolved" && newIssue.endDate===null)) && (
+              <small className="p-error">End Date is required when status is resolved or unresolved.</small>
+            )}
+        </div>
+
         {newIssue.status === "resolved" && (
           <>
             <Divider align="center">
@@ -1236,18 +1249,7 @@ const renderKPIs = () => {
           </>
         )}
 
-        <div className="field">
-          <label htmlFor="endDate">End Date</label>
-          <Calendar
-            id="endDate"
-            value={newIssue.endDate}
-            onChange={(e) => setNewIssue({ ...newIssue, endDate: e.value })}
-            placeholder="Select an End Date"
-          />
-          {((newIssue.status ==="resolved" && newIssue.endDate===null) || (newIssue.status ==="unresolved" && newIssue.endDate===null)) && (
-              <small className="p-error">End Date is required when status is resolved or unresolved.</small>
-            )}
-        </div>
+        
 
         <div className="flex justify-content-end mt-3">
           <Button
