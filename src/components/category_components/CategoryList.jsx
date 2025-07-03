@@ -15,6 +15,7 @@ import axios from "axios";
 import { useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 import { MultiSelect } from "primereact/multiselect";
+import { FilterMatchMode } from 'primereact/api';
 
 const CategoryList = () => {
       const {user} =useSelector((state)=>state.auth)
@@ -27,6 +28,10 @@ const CategoryList = () => {
   const [currentCategoryId, setCurrentCategoryId] = useState(null);
   const [editCategory, setEditCategory] = useState({});  // prefill with same structure as newCategory
   const [categories, setCategories] = useState([]);
+  const [tableFilters, setTableFilters] = useState({
+      global: { value: null, matchMode: FilterMatchMode.CONTAINS },
+      category_name: { value: null, matchMode: FilterMatchMode.CONTAINS}
+    });
 
 
   // useEffect(() => {
@@ -160,18 +165,18 @@ const CategoryList = () => {
         const id=rowData.id
         return(
 
-            <div className=" flex flex-wrap justify-content-center gap-3">
+            <div className="flex align-items-center gap-2">
                
                 {user && user.role!=="admin" &&(
                     <div>
                     </div>
                 )}
                 {user && user.role ==="admin" && (
-                <span className='flex gap-1'>
+                <>
                 
                     <Button className='action-button' outlined  icon="pi pi-pen-to-square" aria-label="Εdit" onClick={()=> openEditDialog(id)}/>
                     <Button className='action-button' outlined icon="pi pi-trash" severity="danger" aria-label="delete" onClick={()=>deleteCategory(id)} />
-                </span>
+                </>
             
                 )}
 
@@ -191,6 +196,19 @@ const CategoryList = () => {
         />
       </div>
       <div className="flex flex-wrap gap-3 mb-3">
+        <InputText
+          placeholder="Global Search"
+          onInput={(e) =>
+            setTableFilters((prev) => ({
+              ...prev,
+              global: {
+                value: e.target.value,
+                matchMode: FilterMatchMode.CONTAINS,
+              },
+            }))
+          }
+        />
+
         {/* <Dropdown
           value={filters.status}
           options={statusOptions}
@@ -221,16 +239,22 @@ const CategoryList = () => {
         value={categories}
         paginator
         rows={10}
+        filters={tableFilters}
         className="p-datatable-sm"
         scrollable
         scrollHeight="600px"
         emptyMessage="No Categories found"
+        globalFilterFields={[
+          "category_name"
+        ]}
       >
         <Column field="id" header="ID" style={{ width: "4em" }} />
         <Column
           field="category_name"
           header="Category Name"
           style={{ minWidth: "12rem" }}
+          filter
+          filterPlaceholder="Search by Category Name"
         />
         <Column
           header="actions"
@@ -249,21 +273,22 @@ const CategoryList = () => {
         className="p-fluid"
         onHide={() => setCategoryDialog(false)}
       >
-      
-
         <div className="formgrid grid">
           <div className="field">
-          <label htmlFor="name">Name</label>
-          <InputTextarea
-            id="name"
-            value={newCategory.category_name}
-            onChange={(e) =>
-              setNewCategory({ ...newCategory, category_name: e.target.value })
-            }
-            rows={3}
-            required
-          />
-        </div>
+            <label htmlFor="name">Name</label>
+            <InputTextarea
+              id="name"
+              value={newCategory.category_name}
+              onChange={(e) =>
+                setNewCategory({
+                  ...newCategory,
+                  category_name: e.target.value,
+                })
+              }
+              rows={3}
+              required
+            />
+          </div>
         </div>
 
         <div className="flex justify-content-end mt-3">
@@ -273,7 +298,12 @@ const CategoryList = () => {
             className="p-button-text mr-2"
             onClick={() => setCategoryDialog(false)}
           />
-          <Button label="Add" icon="pi pi-check" onClick={addCategory} autoFocus />
+          <Button
+            label="Add"
+            icon="pi pi-check"
+            onClick={addCategory}
+            autoFocus
+          />
         </div>
       </Dialog>
 
@@ -285,23 +315,22 @@ const CategoryList = () => {
         className="p-fluid"
         onHide={() => setEditDialogVisible(false)}
       >
-        
-
         <div className="formgrid grid">
           <div className="field col">
             <label htmlFor="category_name">Category Name</label>
             <InputTextarea
-            id="category_name"
-            value={editCategory.category_name || ""}
-            onChange={(e) =>
-              setEditCategory({ ...editCategory, category_name: e.target.value })
-            }
-            rows={3}
-          />
+              id="category_name"
+              value={editCategory.category_name || ""}
+              onChange={(e) =>
+                setEditCategory({
+                  ...editCategory,
+                  category_name: e.target.value,
+                })
+              }
+              rows={3}
+            />
           </div>
-
         </div>
-
 
         <div className="flex justify-content-end mt-3">
           <Button

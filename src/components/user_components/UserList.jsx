@@ -81,7 +81,7 @@ const UserList = () => {
     const initFilters = () => {
         setFilters({
             global: { value: null, matchMode: FilterMatchMode.CONTAINS },
-            name: { value: null, matchMode: FilterMatchMode.IN },
+            name: { operator: FilterOperator.AND, constraints: [{ value: null, matchMode: FilterMatchMode.STARTS_WITH }]  },
             email: { operator: FilterOperator.AND, constraints: [{ value: null, matchMode: FilterMatchMode.STARTS_WITH }] },
             role: {  value: null, matchMode: FilterMatchMode.IN  },
 
@@ -109,18 +109,18 @@ const UserList = () => {
         const id=rowData.uuid
         return(
 
-            <div className=" flex flex-wrap justify-content-center gap-3">
+            <div className="flex align-items-center gap-2">
                
                 {user && user.role!=="admin" &&(
                     <div>
                     </div>
                 )}
                 {user && user.role ==="admin" && (
-                <span className='flex gap-1'>
+                <>
                 
                     <Link to={`/users/edit/${id}`}><Button className='action-button' outlined  icon="pi pi-pen-to-square" aria-label="Εdit" /></Link>
                     <Button className='action-button' outlined icon="pi pi-trash" severity="danger" aria-label="delete" onClick={()=>deleteUser(id)} />
-                </span>
+                </>
             
                 )}
 

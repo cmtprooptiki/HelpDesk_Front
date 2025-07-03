@@ -15,6 +15,7 @@ import axios from "axios";
 import { useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 import { MultiSelect } from "primereact/multiselect";
+import { FilterMatchMode } from 'primereact/api';
 
 const SolutionList = () => {
       const {user} =useSelector((state)=>state.auth)
@@ -32,6 +33,11 @@ const SolutionList = () => {
   const [selectedEditIssueId, setSelectedEditIssueId] = useState(null);
   const [previousIssueId, setPreviousIssueId] = useState(null);
   const [unlinkedIssues, setUnlinkedIssues] = useState([]);
+  const [tableFilters, setTableFilters] = useState({
+        global: { value: null, matchMode: FilterMatchMode.CONTAINS },
+        solution_title: { value: null, matchMode: FilterMatchMode.CONTAINS},
+        solution_desc: { value: null, matchMode: FilterMatchMode.CONTAINS},
+      });
 
   useEffect(() => {
   const fetchUnlinkedIssues = async () => {
@@ -234,18 +240,18 @@ const SolutionList = () => {
         const id=rowData.id
         return(
 
-            <div className=" flex flex-wrap justify-content-center gap-3">
+            <div className="flex align-items-center gap-2">
                
                 {user && user.role!=="admin" &&(
                     <div>
                     </div>
                 )}
                 {user && user.role ==="admin" && (
-                <span className='flex gap-1'>
+                <>
                 
                     <Button className='action-button' outlined  icon="pi pi-pen-to-square" aria-label="Εdit" onClick={()=> openEditDialog(id)}/>
                     <Button className='action-button' outlined icon="pi pi-trash" severity="danger" aria-label="delete" onClick={()=>deleteSolution(id)} />
-                </span>
+                </>
             
                 )}
 
@@ -265,6 +271,18 @@ const SolutionList = () => {
         />
       </div>
       <div className="flex flex-wrap gap-3 mb-3">
+        <InputText
+          placeholder="Global Search"
+          onInput={(e) =>
+            setTableFilters((prev) => ({
+              ...prev,
+              global: {
+                value: e.target.value,
+                matchMode: FilterMatchMode.CONTAINS,
+              },
+            }))
+          }
+        />
         {/* <Dropdown
           value={filters.status}
           options={statusOptions}
@@ -297,6 +315,7 @@ const SolutionList = () => {
         rows={10}
         className="p-datatable-sm"
         scrollable
+        filters={tableFilters}
         scrollHeight="600px"
         emptyMessage="No Solutions found"
       >
@@ -305,11 +324,15 @@ const SolutionList = () => {
           field="solution_title"
           header="Title"
           style={{ minWidth: "12rem" }}
+          filter
+          filterPlaceholder="Search by title"
         />
         <Column
           field="solution_desc"
           header="Description"
           style={{ minWidth: "12rem" }}
+          filter
+          filterPlaceholder="Search by description"
         />
         <Column
           header="actions"
