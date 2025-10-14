@@ -32,6 +32,14 @@ const Navbar=()=>{
         );
     };
 
+      const items_user = [
+        { key:"home", label: "Home", icon: "pi pi-home",url:'/dashboard',template: itemTemplate },
+        { key:"organizations", label: "Organizations", icon: "pi pi-building",url:'/organizations',template: itemTemplate },
+        { key:"categories", label: "Categories", icon: "pi pi-tag",url:'/categories',template: itemTemplate },
+        { key:"solutions", label: "Solutions", icon: "pi pi-key",url:'/solutions',template: itemTemplate },
+
+
+    ];
 
     const items = [
         { key:"home", label: "Home", icon: "pi pi-home",url:'/dashboard',template: itemTemplate },
@@ -43,6 +51,7 @@ const Navbar=()=>{
 
 
     ];
+
     const end=[
         <div key="right-side-btns" className="flex gap-1">
             <span  className="p-text-secondary p-text-bold">
@@ -61,7 +70,7 @@ const Navbar=()=>{
         </div>
     ]
     return(
-    <Menubar model={items} end={end}/>
+    <Menubar model={user?(user.role === "admin" ? items : items_user):(null)}  end={end}/>
     );
 }
 export default Navbar;

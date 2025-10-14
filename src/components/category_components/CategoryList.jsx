@@ -169,6 +169,8 @@ const CategoryList = () => {
                
                 {user && user.role!=="admin" &&(
                     <div>
+                     <Button className='action-button' outlined  icon="pi pi-pen-to-square" aria-label="Εdit" onClick={()=> openEditDialog(id)}/>
+
                     </div>
                 )}
                 {user && user.role ==="admin" && (

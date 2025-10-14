@@ -88,7 +88,7 @@ const SolutionList = () => {
     ///REQUEST USERS FROM SERVER AND SET CONST
     const getSolutions = async() =>{
         try {
-            const response = await axios.get(`${apiBaseUrl}/solutions`, {timeout: 5000});
+            const response = await axios.get(`${apiBaseUrl}/solutions_with_issues`, {timeout: 5000});
             setSolutions(response.data);
 
             console.log("Solutions", response.data)
@@ -111,11 +111,33 @@ const SolutionList = () => {
     }
 
   ///DELETE USER SESSION FROM SERVER  
-    const deleteSolution = async(SolutionId)=>{
-      console.log("Id deleted: ",SolutionId)
-        await axios.delete(`${apiBaseUrl}/solutions/${SolutionId}`);
+    // const deleteSolution = async(SolutionId,issues_id)=>{
+    //   await axios.patch(`${apiBaseUrl}/issues/${issues_id}`, {solution_id: null, status:"open" });
+    //   console.log("Id deleted: ",SolutionId)
+    //   console.log("issues_id: ",issues_id)
+    //   await axios.delete(`${apiBaseUrl}/solutions/${SolutionId}`);
+    //   getSolutions();
+    // }
+    const deleteSolution = async (solutionId, issuesId) => {
+      try {
+        if (issuesId) {
+          await axios.patch(`${apiBaseUrl}/issues/${issuesId}`, {
+            solution_id: null,
+            status: "open",
+          });
+          console.log("Issue updated:", issuesId);
+        } else {
+          console.log("No issue to update for solution:", solutionId);
+        }
+
+        await axios.delete(`${apiBaseUrl}/solutions/${solutionId}`);
+        console.log("Solution deleted:", solutionId);
+      } catch (err) {
+        console.error("Delete flow failed:", err);
+      } finally {
         getSolutions();
-    }
+      }
+    };
 
   const openEditDialog = async (id) => {
     try {
@@ -214,6 +236,7 @@ const SolutionList = () => {
       console.log("Created Solution ID:", createdSolutionId);
       await axios.patch(`${apiBaseUrl}/issues/${selectedIssueId}`, {
         solution_id: createdSolutionId,
+        status: "resolved"  // Optionally update issue status to resolved
       });
     }
 
@@ -238,19 +261,23 @@ const SolutionList = () => {
   ///ACTION BUTTONS FUNCTION
     const actionsBodyTemplate=(rowData)=>{
         const id=rowData.id
+        const issues_id=rowData.issues[0]?.id
         return(
 
             <div className="flex align-items-center gap-2">
                
                 {user && user.role!=="admin" &&(
-                    <div>
-                    </div>
+                  
+                    <>
+                   <Button className='action-button' outlined  icon="pi pi-pen-to-square" aria-label="Εdit" onClick={()=> openEditDialog(id)}/>
+
+                    </>
                 )}
                 {user && user.role ==="admin" && (
                 <>
                 
                     <Button className='action-button' outlined  icon="pi pi-pen-to-square" aria-label="Εdit" onClick={()=> openEditDialog(id)}/>
-                    <Button className='action-button' outlined icon="pi pi-trash" severity="danger" aria-label="delete" onClick={()=>deleteSolution(id)} />
+                    <Button className='action-button' outlined icon="pi pi-trash" severity="danger" aria-label="delete" onClick={()=>deleteSolution(id,issues_id)} />
                 </>
             
                 )}
@@ -333,6 +360,16 @@ const SolutionList = () => {
           style={{ minWidth: "12rem" }}
           filter
           filterPlaceholder="Search by description"
+        />
+        <Column
+          header="Issue Description"
+          body={(rowData) => rowData.issues?.[0]?.description || "-"}
+          style={{ minWidth: "12rem" }}
+        />
+        <Column
+          header="Assigned To"
+          body={(rowData) => rowData.issues?.[0]?.assigned_to || "-"}
+          style={{ minWidth: "8rem" }}
         />
         <Column
           header="actions"
