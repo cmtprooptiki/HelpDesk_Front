@@ -1,4 +1,4 @@
-import React,{useState,useEffect} from 'react'
+import React,{useState,useEffect, useRef} from 'react'
 import axios from 'axios'
 import { Link } from 'react-router-dom'
 import apiBaseUrl from '../../api_config.jsx'
@@ -13,6 +13,8 @@ import { InputIcon } from 'primereact/inputicon';
 import { InputNumber } from 'primereact/inputnumber';
 import { MultiSelect } from 'primereact/multiselect';
 import { PrimeIcons } from 'primereact/api';
+import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
+import { Toast } from 'primereact/toast';
 
 const UserList = () => {
     const {user} =useSelector((state)=>state.auth)
@@ -23,6 +25,8 @@ const UserList = () => {
 
     const [users,setUsers]=useState([]);
     const [roles,setRoles]=useState([])
+
+    const toast = useRef(null);
 
 
     useEffect(()=>{
@@ -55,11 +59,40 @@ const UserList = () => {
         
     }
 
+    // Delete user with confirmation
+    const confirmDeleteUser = (userId) => {
+        confirmDialog({
+            message: 'Είστε σίγουροι ότι θέλετε να διαγράψετε αυτόν τον χρήστη;',
+            header: 'Επιβεβαίωση Διαγραφής',
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: 'Ναι',
+            rejectLabel: 'Όχι',
+            acceptClassName: 'p-button-danger',
+            accept: () => deleteUser(userId),
+        });
+    };
+
     ///DELETE USER SESSION FROM SERVER  
-    const deleteUser = async(userId)=>{
-        await axios.delete(`${apiBaseUrl}/users/${userId}`);
-        getUsers();
-    }
+    const deleteUser = async (userId) => {
+        try {
+            await axios.delete(`${apiBaseUrl}/users/${userId}`);
+            getUsers();
+            toast.current.show({
+                severity: 'success',
+                summary: 'Επιτυχής Διαγραφή',
+                detail: 'Ο χρήστης διαγράφηκε επιτυχώς.',
+                life: 3000,
+            });
+        } catch (error) {
+            console.error('Delete error:', error);
+            toast.current.show({
+                severity: 'error',
+                summary: 'Σφάλμα',
+                detail: 'Αποτυχία διαγραφής χρήστη.',
+                life: 3000,
+            });
+        }
+    };
 
     ///CLEAR ALL FILTERS FUNCTION
     const clearFilter = () => {
@@ -119,7 +152,7 @@ const UserList = () => {
                 <>
                 
                     <Link to={`/users/edit/${id}`}><Button className='action-button' outlined  icon="pi pi-pen-to-square" aria-label="Εdit" /></Link>
-                    <Button className='action-button' outlined icon="pi pi-trash" severity="danger" aria-label="delete" onClick={()=>deleteUser(id)} />
+                    <Button className='action-button' outlined icon="pi pi-trash" severity="danger" aria-label="delete" onClick={()=>confirmDeleteUser(id)} />
                 </>
             
                 )}
@@ -164,6 +197,8 @@ const UserList = () => {
 
 
     <div className="card" >
+        <Toast ref={toast} />
+        <ConfirmDialog />
         <h1 className='title'>Διαχείριση Χρηστών</h1>
         {user && user.role ==="admin" && (
             <Link to={"/users/add"} className='button is-primary mb-2'>

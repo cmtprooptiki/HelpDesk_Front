@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Button } from "primereact/button";
 import { Dropdown } from "primereact/dropdown";
 import { InputText } from "primereact/inputtext";
@@ -16,13 +16,16 @@ import { useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 import { MultiSelect } from "primereact/multiselect";
 import { FilterMatchMode } from 'primereact/api';
+import { Calendar } from "primereact/calendar";
+import { Toast } from 'primereact/toast';
+import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
 
 const SolutionList = () => {
       const {user} =useSelector((state)=>state.auth)
 
   const [filters, setFilters] = useState({ status: null, priority: null, keyword: "" });
   const [solutionDialog, setSolutionDialog] = useState(false);
-  const [newSolution, setNewSolution] = useState({});
+  const [newSolution, setNewSolution] = useState({ solution_title: "", solution_desc: "", endDate: new Date() });
   const [loading, setLoading] = useState(true);
   const [editDialogVisible, setEditDialogVisible] = useState(false);
   const [currentSolutionId, setCurrentSolutionId] = useState(null);
@@ -38,6 +41,9 @@ const SolutionList = () => {
         solution_title: { value: null, matchMode: FilterMatchMode.CONTAINS},
         solution_desc: { value: null, matchMode: FilterMatchMode.CONTAINS},
       });
+  const [editSelectedIssueEndDate, setEditSelectedIssueEndDate] = useState(null);
+  const toast = useRef(null);
+  
 
   useEffect(() => {
   const fetchUnlinkedIssues = async () => {
@@ -110,6 +116,18 @@ const SolutionList = () => {
         
     }
 
+    const confirmDeleteSolution = (solution_id, issuesId) => {
+        confirmDialog({
+            message: 'Do you really want to delete this solution?',
+            header: 'Delete Confirmation',
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: 'Yes',
+            rejectLabel: 'No',
+            acceptClassName: 'p-button-danger',
+            accept: () => deleteSolution(solution_id, issuesId),
+        });
+    };
+
   ///DELETE USER SESSION FROM SERVER  
     // const deleteSolution = async(SolutionId,issues_id)=>{
     //   await axios.patch(`${apiBaseUrl}/issues/${issues_id}`, {solution_id: null, status:"open" });
@@ -124,6 +142,7 @@ const SolutionList = () => {
           await axios.patch(`${apiBaseUrl}/issues/${issuesId}`, {
             solution_id: null,
             status: "open",
+            endDate: null, // Clear the end date when unlinking the solution
           });
           console.log("Issue updated:", issuesId);
         } else {
@@ -131,9 +150,21 @@ const SolutionList = () => {
         }
 
         await axios.delete(`${apiBaseUrl}/solutions/${solutionId}`);
+        toast.current.show({
+                severity: 'success',
+                summary: 'Successful Deletion',
+                detail: 'The solution was deleted successfully.',
+                life: 3000,
+            });
         console.log("Solution deleted:", solutionId);
-      } catch (err) {
-        console.error("Delete flow failed:", err);
+      } catch (error) {
+        console.error('Delete error:', error);
+            toast.current.show({
+                severity: 'error',
+                summary: 'error',
+                detail: 'Failed to delete solution.',
+                life: 3000,
+            });
       } finally {
         getSolutions();
       }
@@ -149,6 +180,7 @@ const SolutionList = () => {
       // Find the issue that has this solution_id
       const issuesResponse = await axios.get(`${apiBaseUrl}/issues`);
       setIssues(issuesResponse.data);
+      console.log("issuesResponse", issuesResponse.data);
 
       const linkedIssue = issuesResponse.data.find(
         (issue) => issue.solution_id === id
@@ -157,6 +189,8 @@ const SolutionList = () => {
       if (linkedIssue) {
         setPreviousIssueId(linkedIssue.id);
         setSelectedEditIssueId(linkedIssue.id);
+        // console.log("linkedIssue", linkedIssue.endDate);
+        setEditSelectedIssueEndDate(linkedIssue.endDate);
       } else {
         setPreviousIssueId(null);
         setSelectedEditIssueId(null);
@@ -180,18 +214,25 @@ const SolutionList = () => {
         editSolution
       );
 
-      // 2. If the issue changed, update the links
-      if (previousIssueId && previousIssueId !== selectedEditIssueId) {
-        await axios.patch(`${apiBaseUrl}/issues/${previousIssueId}`, {
-          solution_id: null,
+      // Also update the endDate of the linked issue if it was changed
+      if (selectedEditIssueId && editSelectedIssueEndDate) {
+        await axios.patch(`${apiBaseUrl}/issues/${selectedEditIssueId}`, {
+          endDate: editSelectedIssueEndDate,
         });
       }
 
-      if (selectedEditIssueId && selectedEditIssueId !== previousIssueId) {
-        await axios.patch(`${apiBaseUrl}/issues/${selectedEditIssueId}`, {
-          solution_id: currentSolutionId,
-        });
-      }
+      // 2. If the issue changed, update the links
+      // if (previousIssueId && previousIssueId !== selectedEditIssueId) {
+      //   await axios.patch(`${apiBaseUrl}/issues/${previousIssueId}`, {
+      //     solution_id: null,
+      //   });
+      // }
+
+      // if (selectedEditIssueId && selectedEditIssueId !== previousIssueId) {
+      //   await axios.patch(`${apiBaseUrl}/issues/${selectedEditIssueId}`, {
+      //     solution_id: currentSolutionId,
+      //   });
+      // }
 
       setEditDialogVisible(false);
       setPreviousIssueId(null);
@@ -221,27 +262,32 @@ const SolutionList = () => {
   // };
   const addSolution = async () => {
   try {
-    const response = await axios.post(`${apiBaseUrl}/solutions`, {
-      solution_title: newSolution.solution_title,
-      solution_desc: newSolution.solution_desc,
-    });
-
-    const createdSolutionId = response.data.id;
-
-    console.log("response", response)
-
     // If an issue is selected, patch it with the new solution_id
     if (selectedIssueId) {
+      const response = await axios.post(`${apiBaseUrl}/solutions`, {
+        solution_title: newSolution.solution_title,
+        solution_desc: newSolution.solution_desc,
+      });
+
+      const createdSolutionId = response.data.id;
+
+      console.log("response", response);
+
+      // If an issue is selected, patch it with the new solution_id
+      //if (selectedIssueId) {
       console.log("Selected Issue ID:", selectedIssueId);
       console.log("Created Solution ID:", createdSolutionId);
       await axios.patch(`${apiBaseUrl}/issues/${selectedIssueId}`, {
         solution_id: createdSolutionId,
-        status: "resolved"  // Optionally update issue status to resolved
+        status: "resolved", // Optionally update issue status to resolved
+        endDate: newSolution.endDate, // Set the end date when the solution is added
       });
+      setSolutionDialog(false);
+      window.location.reload(); // Reload the page to reflect changes
     }
 
-    setSolutionDialog(false);
-    window.location.reload(); // Reload the page to reflect changes
+    // setSolutionDialog(false);
+    // window.location.reload(); // Reload the page to reflect changes
   } catch (error) {
     console.error("Failed to add solution or patch issue:", error.message);
     alert("Error occurred. Check console for details.");
@@ -262,6 +308,7 @@ const SolutionList = () => {
     const actionsBodyTemplate=(rowData)=>{
         const id=rowData.id
         const issues_id=rowData.issues[0]?.id
+        const assigned_to=rowData.issues[0]?.assigned_to
         return(
 
             <div className="flex align-items-center gap-2">
@@ -269,15 +316,20 @@ const SolutionList = () => {
                 {user && user.role!=="admin" &&(
                   
                     <>
-                   <Button className='action-button' outlined  icon="pi pi-pen-to-square" aria-label="Εdit" onClick={()=> openEditDialog(id)}/>
-
+                   
+                    {user && assigned_to === user.name && (
+                      <>
+                      <Button className='action-button' outlined  icon="pi pi-pen-to-square" aria-label="Εdit" onClick={()=> openEditDialog(id)}/>
+                      <Button className='action-button' outlined icon="pi pi-trash" severity="danger" aria-label="delete" onClick={()=>confirmDeleteSolution(id,issues_id)} />
+                      </>
+                    )}
                     </>
                 )}
                 {user && user.role ==="admin" && (
                 <>
                 
                     <Button className='action-button' outlined  icon="pi pi-pen-to-square" aria-label="Εdit" onClick={()=> openEditDialog(id)}/>
-                    <Button className='action-button' outlined icon="pi pi-trash" severity="danger" aria-label="delete" onClick={()=>deleteSolution(id,issues_id)} />
+                    <Button className='action-button' outlined icon="pi pi-trash" severity="danger" aria-label="delete" onClick={()=>confirmDeleteSolution(id,issues_id)} />
                 </>
             
                 )}
@@ -290,6 +342,8 @@ const SolutionList = () => {
   return (
     <div className="p-4">
       <div className="flex flex-wrap align-items-center justify-content-between mb-3">
+        <Toast ref={toast} />
+        <ConfirmDialog />
         <h2 className="m-0">Solutions</h2>
         <Button
           label="New Solution"
@@ -390,7 +444,9 @@ const SolutionList = () => {
       >
         <div className="formgrid grid">
           <div className="field">
-            <label htmlFor="title">Title</label>
+            <label htmlFor="title">
+              Title <span style={{ color: "red" }}>*</span>
+            </label>
             <InputTextarea
               id="title"
               value={newSolution.solution_title}
@@ -406,7 +462,9 @@ const SolutionList = () => {
           </div>
 
           <div className="field">
-            <label htmlFor="desc">Description</label>
+            <label htmlFor="desc">
+              Description <span style={{ color: "red" }}>*</span>
+            </label>
             <InputTextarea
               id="desc"
               value={newSolution.solution_desc}
@@ -422,7 +480,9 @@ const SolutionList = () => {
           </div>
 
           <div className="field">
-            <label htmlFor="issue">Select Issue</label>
+            <label htmlFor="issue">
+              Select Issue <span style={{ color: "red" }}>*</span>
+            </label>
             <Dropdown
               id="issue"
               value={selectedIssueId}
@@ -431,6 +491,17 @@ const SolutionList = () => {
               optionValue="id"
               onChange={(e) => setSelectedIssueId(e.value)}
               placeholder="Select an issue"
+              required
+            />
+          </div>
+
+          <div className="field">
+            <label htmlFor="endDate">End Date <span style={{ color: "red" }}>*</span> </label>
+            <Calendar
+              id="endDate"
+              value={newSolution.endDate}
+              onChange={(e) => setNewSolution({ ...newSolution, endDate: e.target.value })}
+              placeholder="Select an End Date"
             />
           </div>
         </div>
@@ -461,7 +532,9 @@ const SolutionList = () => {
       >
         <div className="formgrid grid">
           <div className="field col">
-            <label htmlFor="title">Title</label>
+            <label htmlFor="title">
+              Title <span style={{ color: "red" }}>*</span>
+            </label>
             <InputTextarea
               id="title"
               value={editSolution.solution_title}
@@ -476,7 +549,9 @@ const SolutionList = () => {
           </div>
 
           <div className="field col">
-            <label htmlFor="desc">Description</label>
+            <label htmlFor="desc">
+              Description <span style={{ color: "red" }}>*</span>
+            </label>
             <InputTextarea
               id="desc"
               value={editSolution.solution_desc}
@@ -492,7 +567,9 @@ const SolutionList = () => {
         </div>
 
         <div className="field">
-          <label htmlFor="edit-issue">Select Issue</label>
+          <label htmlFor="edit-issue">
+            Select Issue <span style={{ color: "red" }}>*</span>
+          </label>
           <Dropdown
             id="edit-issue"
             value={selectedEditIssueId}
@@ -501,8 +578,20 @@ const SolutionList = () => {
             optionValue="id"
             onChange={(e) => setSelectedEditIssueId(e.value)}
             placeholder="Select an issue"
+            disabled
+            readOnly
           />
         </div>
+
+        <div className="field">
+            <label htmlFor="endDate">End Date <span style={{ color: "red" }}>*</span> </label>
+            <Calendar
+              id="endDate"
+              value={editSelectedIssueEndDate ? new Date(editSelectedIssueEndDate) : null}
+              onChange={(e) => setEditSelectedIssueEndDate(e.value)}
+              placeholder="Select an End Date"
+            />
+          </div>
 
         <div className="flex justify-content-end mt-3">
           <Button

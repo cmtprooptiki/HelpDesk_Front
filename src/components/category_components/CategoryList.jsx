@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Button } from "primereact/button";
 import { Dropdown } from "primereact/dropdown";
 import { InputText } from "primereact/inputtext";
@@ -16,6 +16,8 @@ import { useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 import { MultiSelect } from "primereact/multiselect";
 import { FilterMatchMode } from 'primereact/api';
+import { Toast } from 'primereact/toast';
+import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
 
 const CategoryList = () => {
       const {user} =useSelector((state)=>state.auth)
@@ -32,6 +34,7 @@ const CategoryList = () => {
       global: { value: null, matchMode: FilterMatchMode.CONTAINS },
       category_name: { value: null, matchMode: FilterMatchMode.CONTAINS}
     });
+  const toast = useRef(null);
 
 
   // useEffect(() => {
@@ -74,11 +77,43 @@ const CategoryList = () => {
         
     }
 
+    const confirmDeleteCategory = (categoryId) => {
+        confirmDialog({
+            message: 'Do you really want to delete this category?',
+            header: 'Delete Confirmation',
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: 'Yes',
+            rejectLabel: 'No',
+            acceptClassName: 'p-button-danger',
+            accept: () => deleteCategory(categoryId),
+        });
+    };
+
   ///DELETE USER SESSION FROM SERVER  
     const deleteCategory = async(CategoryId)=>{
-      console.log("Id deleted: ",CategoryId)
+      try
+      {
+        console.log("Id deleted: ",CategoryId)
         await axios.delete(`${apiBaseUrl}/categories/${CategoryId}`);
         getCategories();
+        toast.current.show({
+                severity: 'success',
+                summary: 'Successful Deletion',
+                detail: 'The category was deleted successfully.',
+                life: 3000,
+            });
+      }
+      catch(error)
+      {
+        console.error('Delete error:', error);
+            toast.current.show({
+                severity: 'error',
+                summary: 'error',
+                detail: 'Failed to delete category.',
+                life: 3000,
+            });
+      }
+      
     }
 
   const openEditDialog = async (id) => {
@@ -177,7 +212,7 @@ const CategoryList = () => {
                 <>
                 
                     <Button className='action-button' outlined  icon="pi pi-pen-to-square" aria-label="Εdit" onClick={()=> openEditDialog(id)}/>
-                    <Button className='action-button' outlined icon="pi pi-trash" severity="danger" aria-label="delete" onClick={()=>deleteCategory(id)} />
+                    <Button className='action-button' outlined icon="pi pi-trash" severity="danger" aria-label="delete" onClick={()=>confirmDeleteCategory(id)} />
                 </>
             
                 )}
@@ -190,6 +225,8 @@ const CategoryList = () => {
   return (
     <div className="p-4">
       <div className="flex flex-wrap align-items-center justify-content-between mb-3">
+        <Toast ref={toast} />
+        <ConfirmDialog />
         <h2 className="m-0">Categories</h2>
         <Button
           label="New Category"

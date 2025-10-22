@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Button } from "primereact/button";
 import { Dropdown } from "primereact/dropdown";
 import { InputText } from "primereact/inputtext";
@@ -15,6 +15,8 @@ import axios from "axios";
 import { useSelector } from "react-redux";
 import { Link } from "react-router-dom";
 import { MultiSelect } from "primereact/multiselect";
+import { Toast } from 'primereact/toast';
+import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
 import { FilterMatchMode } from 'primereact/api';
 
 const OrganizationList = () => {
@@ -28,6 +30,8 @@ const OrganizationList = () => {
   const [currentOrganizationId, setCurrentOrganizationId] = useState(null);
   const [editOrganization, setEditOrganization] = useState({});  // prefill with same structure as newOrganization
   const [organizations, setOrganizations] = useState([]);
+
+  const toast = useRef(null);
 
   const [tableFilters, setTableFilters] = useState({
     global: { value: null, matchMode: FilterMatchMode.CONTAINS },
@@ -83,14 +87,45 @@ const OrganizationList = () => {
 
   ///////////////////
 
+  const confirmDeleteOrganization = (id) => {
+        confirmDialog({
+            message: 'Do you really want to delete this Organization?',
+            header: 'Delete Confirmation',
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: 'Yes',
+            rejectLabel: 'No',
+            acceptClassName: 'p-button-danger',
+            accept: () => deleteOrganization(id),
+        });
+    };
+
   const statusOptions = ["open", "in-progress", "resolved"].map(s => ({ label: s.charAt(0).toUpperCase() + s.slice(1), value: s }));
   const priorityOptions = ["low", "medium", "high", "critical"].map(p => ({ label: p.charAt(0).toUpperCase() + p.slice(1), value: p }));
 
   ///DELETE USER SESSION FROM SERVER  
     const deleteOrganization = async(OrganizationId)=>{
-      console.log("Id deleted: ",OrganizationId)
+      try
+      {
+        // console.log("Id deleted: ",OrganizationId)
         await axios.delete(`${apiBaseUrl}/organizations/${OrganizationId}`);
         getOrganizations();
+        toast.current.show({
+                severity: 'success',
+                summary: 'Successful Deletion',
+                detail: 'The organization was deleted successfully.',
+                life: 3000,
+            });
+      }
+      catch (error) {
+            console.error('Delete error:', error);
+            toast.current.show({
+                severity: 'error',
+                summary: 'error',
+                detail: 'Failed to delete Organization.',
+                life: 3000,
+            });
+        }
+      
     }
 
   const openEditDialog = async (id) => {
@@ -196,7 +231,7 @@ const OrganizationList = () => {
                 <span className='flex gap-1'>
                 
                     <Button className='action-button' outlined  icon="pi pi-pen-to-square" aria-label="Εdit" onClick={()=> openEditDialog(id)}/>
-                    <Button className='action-button' outlined icon="pi pi-trash" severity="danger" aria-label="delete" onClick={()=>deleteOrganization(id)} />
+                    <Button className='action-button' outlined icon="pi pi-trash" severity="danger" aria-label="delete" onClick={()=>confirmDeleteOrganization(id)} />
                 </span>
             
                 )}
@@ -209,6 +244,8 @@ const OrganizationList = () => {
   return (
     <div className="p-4">
       <div className="flex flex-wrap align-items-center justify-content-between mb-3">
+        <Toast ref={toast} />
+        <ConfirmDialog />
         <h2 className="m-0">Organizations</h2>
         <Button
           label="New Organization"

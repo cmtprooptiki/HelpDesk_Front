@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Button } from "primereact/button";
 import { Dropdown } from "primereact/dropdown";
 import { InputText } from "primereact/inputtext";
@@ -23,6 +23,9 @@ import {BsXCircleFill} from "react-icons/bs"
 import "../../../css/kpis.css"
 import { Divider } from "primereact/divider";
 import { FilterMatchMode } from 'primereact/api';
+
+import { Toast } from 'primereact/toast';
+import { ConfirmDialog, confirmDialog } from 'primereact/confirmdialog';
 
 
 const DashboardComp = () => {
@@ -67,6 +70,8 @@ const [selectedSolution, setSelectedSolution] = useState({ title: "", desc: "" }
 const [indicatorFilterOptions, setIndicatorFilterOptions] = useState([]);
 const [filteredOrganizationOptions, setFilteredOrganizationOptions] = useState([]);
 const [filteredCategoryOptions, setFilteredCategoryOptions] = useState([]);
+
+const toast = useRef(null);
 
 
 
@@ -388,10 +393,23 @@ const indicatorOptions = indicators.map(ind => ({
   { label: "Telephone", value: "telephone" }
 ];
 
+  const confirmDeleteIssue = (issueId) => {
+        confirmDialog({
+            message: 'Do you really want to delete this issue?',
+            header: 'Delete Confirmation',
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: 'Yes',
+            rejectLabel: 'No',
+            acceptClassName: 'p-button-danger',
+            accept: () => deleteIssue(issueId),
+        });
+    };
 
   ///DELETE USER SESSION FROM SERVER  
     const deleteIssue = async(issueId)=>{
-      console.log("Id deleted: ",issueId)
+      try
+      {
+        console.log("Id deleted: ",issueId)
         await axios.delete(`${apiBaseUrl}/issues/${issueId}`);
         if(user.role === "user")
         {
@@ -401,6 +419,23 @@ const indicatorOptions = indicators.map(ind => ({
         {
           getIssues();
         }
+        toast.current.show({
+                severity: 'success',
+                summary: 'Successful Deletion',
+                detail: 'The issue was deleted successfully.',
+                life: 3000,
+            });
+      }
+      catch (error) {
+            console.error('Delete error:', error);
+            toast.current.show({
+                severity: 'error',
+                summary: 'error',
+                detail: 'Failed to delete issue.',
+                life: 3000,
+            });
+        }
+     
     }
 
   const openEditDialog = async (id) => {
@@ -582,7 +617,7 @@ const indicatorOptions = indicators.map(ind => ({
                 icon="pi pi-trash"
                 severity="danger"
                 aria-label="delete"
-                onClick={() => deleteIssue(id)}
+                onClick={() => confirmDeleteIssue(id)}
               />
               
             </span>
@@ -800,6 +835,8 @@ const renderKPIs = () => {
   return (
     <div className="p-4">
       <div className="flex flex-wrap align-items-center justify-content-between mb-3">
+        <Toast ref={toast} />
+        <ConfirmDialog />
         <h2 className="m-0">Issue Tracking Dashboard</h2>
         <Button
           label="New Issue"
