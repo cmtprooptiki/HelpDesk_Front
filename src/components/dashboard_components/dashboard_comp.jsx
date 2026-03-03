@@ -32,9 +32,9 @@ const DashboardComp = () => {
       const {user} =useSelector((state)=>state.auth)
 
   const [issues, setIssues] = useState([]);
-  const [filters, setFilters] = useState({ status: null, priority: null, keyword: "" });
+  const [filters, setFilters] = useState({ status: null, responsibility: null, keyword: "" });
   const [issueDialog, setIssueDialog] = useState(false);
-  const [newIssue, setNewIssue] = useState({ description: "", status: "open", priority: "low", severity: "not important", assigned_to: user?.name, started_by: user?.name, petitioner_name: "", contact_type: "email", contact_value: "", related_to_indicators: "no", indicator_code: "", organizations_id: null, startDate: null, endDate: null, user_id: user?.id, category_id: null, solution_id: null, solution_title: "", solution_desc: "" }); // prefill with same structure as editIssue
+  const [newIssue, setNewIssue] = useState({ description: "", status: "open", responsibility: "low", severity: "not important", assigned_to: user?.name, started_by: user?.name, petitioner_name: "", related_to_indicators: "no", indicator_code: "", organizations_id: null, startDate: null, endDate: null, user_id: user?.id, category_id: null, solution_id: null, solution_title: "", solution_desc: "" }); // prefill with same structure as editIssue
   const [loading, setLoading] = useState(true);
   const [editDialogVisible, setEditDialogVisible] = useState(false);
   const [currentIssueId, setCurrentIssueId] = useState(null);
@@ -47,14 +47,12 @@ const DashboardComp = () => {
   const [tableFilters, setTableFilters] = useState({
   global: { value: null, matchMode: FilterMatchMode.CONTAINS },
   status: { value: null, matchMode: FilterMatchMode.EQUALS },
-  priority: { value: null, matchMode: FilterMatchMode.EQUALS },
+  responsibility: { value: null, matchMode: FilterMatchMode.EQUALS },
   description: { value: null, matchMode: FilterMatchMode.CONTAINS },
   started_by: { value: null, matchMode: FilterMatchMode.CONTAINS },
   assigned_to: { value: null, matchMode: FilterMatchMode.CONTAINS },
   petitioner_name: { value: null, matchMode: FilterMatchMode.CONTAINS },
   severity: { value: null, matchMode: FilterMatchMode.EQUALS },
-  contact_type: { value: null, matchMode: FilterMatchMode.EQUALS },
-  contact_value: { value: null, matchMode: FilterMatchMode.CONTAINS },
   related_to_indicators: { value: null, matchMode: FilterMatchMode.EQUALS },
   indicator_code: { value: null, matchMode: FilterMatchMode.EQUALS },
   'organization.id': { value: null, matchMode: FilterMatchMode.EQUALS },
@@ -386,12 +384,8 @@ const indicatorOptions = indicators.map(ind => ({
   ///////////////////
 
   const statusOptions = ["open", "in-progress", "resolved", "unresolved"].map(s => ({ label: s.charAt(0).toUpperCase() + s.slice(1), value: s }));
-  const priorityOptions = ["low", "medium", "high"].map(p => ({ label: p.charAt(0).toUpperCase() + p.slice(1), value: p }));
+  const responsibilityOptions = ["User", "Organization", "System"].map(p => ({ label: p.charAt(0).toUpperCase() + p.slice(1), value: p }));
   const severityOptions = ["important", "not important", "critical"].map(p => ({ label: p.charAt(0).toUpperCase() + p.slice(1), value: p }));
-  const contactTypeOptions = [
-  { label: "Email", value: "email" },
-  { label: "Telephone", value: "telephone" }
-];
 
   const confirmDeleteIssue = (issueId) => {
         confirmDialog({
@@ -529,7 +523,7 @@ const indicatorOptions = indicators.map(ind => ({
   //   const updated = [...issues, issue];
   //   saveIssues(updated);
   //   setIssueDialog(false);
-  //   setNewIssue({ title: "", description: "", status: "open", priority: "low", solution: "" });
+  //   setNewIssue({ title: "", description: "", status: "open", responsibility: "low", solution: "" });
   // };
   const addIssue = async () => {
     try {
@@ -553,12 +547,10 @@ const indicatorOptions = indicators.map(ind => ({
       await axios.post(`${apiBaseUrl}/issues`, {
         description: newIssue.description,
         status: newIssue.status,
-        priority: newIssue.priority,
+        responsibility: newIssue.responsibility,
         started_by: newIssue.started_by,
         assigned_to: newIssue.assigned_to,
         petitioner_name: newIssue.petitioner_name,
-        contact_type: newIssue.contact_type,
-        contact_value: newIssue.contact_value,
         related_to_indicators: newIssue.related_to_indicators,
         indicator_code: newIssue.indicator_code,
         organizations_id: newIssue.organizations_id,
@@ -583,7 +575,7 @@ const indicatorOptions = indicators.map(ind => ({
   const filteredIssues = issues.filter(issue => {
     return (
       (!filters.status || issue.status === filters.status) &&
-      (!filters.priority || issue.priority === filters.priority) &&
+      (!filters.responsibility || issue.responsibility === filters.responsibility) &&
       (filters.keyword === "" || issue.title.toLowerCase().includes(filters.keyword.toLowerCase()) || issue.description.toLowerCase().includes(filters.keyword.toLowerCase()))
     );
   });
@@ -652,15 +644,15 @@ const severityTemplate = (rowData) => (
   />
 );
 
-const priorityTemplate = (rowData) => (
+const responsibilityTemplate = (rowData) => (
   <Tag
-    value={rowData.priority}
+    value={rowData.responsibility}
     severity={
-      rowData.priority === "critical"
+      rowData.responsibility === "User"
         ? "danger"
-        : rowData.priority === "high"
+        : rowData.responsibility === "System"
         ? "warning"
-        : rowData.priority === "medium"
+        : rowData.responsibility === "Organization"
         ? "info"
         : "success"
     }
@@ -678,10 +670,10 @@ const statusFilterTemplate = (options) => (
   />
 );
 
-const priorityFilterTemplate = (options) => (
+const responsibilityFilterTemplate = (options) => (
   <Dropdown
     value={options.value}
-    options={priorityOptions}
+    options={responsibilityOptions}
     onChange={(e) => options.filterCallback(e.value, options.index)}
     placeholder="All"
     className="p-column-filter"
@@ -700,16 +692,6 @@ const severityFilterTemplate = (options) => (
   />
 );
 
-const contactTypeFilterTemplate = (options) => (
-  <Dropdown
-    value={options.value}
-    options={contactTypeOptions}
-    onChange={(e) => options.filterCallback(e.value, options.index)}
-    placeholder="All"
-    className="p-column-filter"
-    showClear
-  />
-);
 
 const relatedToIndicatorsFilterTemplate = (options) => (
   <Dropdown
@@ -853,10 +835,10 @@ const renderKPIs = () => {
           placeholder="Select Status"
         />
         <Dropdown
-          value={filters.priority}
-          options={priorityOptions}
-          onChange={(e) => setFilters({ ...filters, priority: e.value })}
-          placeholder="Select Priority"
+          value={filters.responsibility}
+          options={responsibilityOptions}
+          onChange={(e) => setFilters({ ...filters, responsibility: e.value })}
+          placeholder="Select responsibility"
         /> */}
         <InputText
           placeholder="Global Search"
@@ -875,7 +857,7 @@ const renderKPIs = () => {
         <Column field="id" header="ID" style={{ width: "4em" }} />
         <Column field="title" header="Title" />
         <Column field="status" header="Status" body={statusTemplate} />
-        <Column field="priority" header="Priority" body={priorityTemplate} />
+        <Column field="responsibility" header="responsibility" body={responsibilityTemplate} />
         <Column field="date" header="Reported" />
       </DataTable> */}
       <DataTable
@@ -887,13 +869,11 @@ const renderKPIs = () => {
         globalFilterFields={[
           "description",
           "status",
-          "priority",
+          "responsibility",
           "started_by",
           "severity",
           "assigned_to",
           "petitioner_name",
-          "contact_type",
-          "contact_value",
           "related_to_indicators",
           "indicator_code",
           "organization.id",
@@ -915,11 +895,11 @@ const renderKPIs = () => {
           style={{ minWidth: "12rem" }}
         />
         <Column
-          field="priority"
-          header="Priority"
-          body={priorityTemplate}
+          field="responsibility"
+          header="responsibility"
+          body={responsibilityTemplate}
           filter
-          filterElement={priorityFilterTemplate}
+          filterElement={responsibilityFilterTemplate}
           style={{ minWidth: "8rem" }}
         />
         <Column
@@ -962,20 +942,6 @@ const renderKPIs = () => {
           filter
           filterPlaceholder="Search by petitioner"
           style={{ minWidth: "10rem" }}
-        />
-        <Column
-          field="contact_type"
-          header="Contact Type"
-          style={{ minWidth: "8rem" }}
-          filter
-          filterElement={contactTypeFilterTemplate}
-        />
-        <Column
-          field="contact_value"
-          header="Contact Value"
-          style={{ minWidth: "12rem" }}
-          filter
-          filterPlaceholder="Search by contact value"
         />
         <Column
           field="related_to_indicators"
@@ -1064,12 +1030,12 @@ const renderKPIs = () => {
 
         <div className="formgrid grid">
           <div className="field col">
-            <label htmlFor="priority">Priority</label>
+            <label htmlFor="responsibility">responsibility</label>
             <Dropdown
-              value={newIssue.priority}
-              options={priorityOptions}
-              onChange={(e) => setNewIssue({ ...newIssue, priority: e.value })}
-              placeholder="Select Priority"
+              value={newIssue.responsibility}
+              options={responsibilityOptions}
+              onChange={(e) => setNewIssue({ ...newIssue, responsibility: e.value })}
+              placeholder="Select responsibility"
             />
           </div>
           <div className="field col">
@@ -1146,30 +1112,9 @@ const renderKPIs = () => {
               }
             />
           </div>
-          <div className="field col">
-            <label htmlFor="contact_type">Contact Type</label>
-            <Dropdown
-              value={newIssue.contact_type}
-              options={contactTypeOptions}
-              onChange={(e) =>
-                setNewIssue({ ...newIssue, contact_type: e.value })
-              }
-              placeholder="Select Contact Type"
-            />
-          </div>
         </div>
 
         <div className="formgrid grid">
-          <div className="field col">
-            <label htmlFor="contact_value">Contact Value</label>
-            <InputText
-              id="contact_value"
-              value={newIssue.contact_value}
-              onChange={(e) =>
-                setNewIssue({ ...newIssue, contact_value: e.target.value })
-              }
-            />
-          </div>
           <div className="field col">
             <label htmlFor="related_to_indicators">Related to Indicator</label>
             <Dropdown
@@ -1326,12 +1271,12 @@ const renderKPIs = () => {
 
         <div className="formgrid grid">
           <div className="field col">
-            <label htmlFor="priority">Priority</label>
+            <label htmlFor="responsibility">responsibility</label>
             <Dropdown
-              value={editIssue.priority}
-              options={priorityOptions}
+              value={editIssue.responsibility}
+              options={responsibilityOptions}
               onChange={(e) =>
-                setEditIssue({ ...editIssue, priority: e.value })
+                setEditIssue({ ...editIssue, responsibility: e.value })
               }
             />
           </div>
@@ -1405,29 +1350,9 @@ const renderKPIs = () => {
               }
             />
           </div>
-          <div className="field col">
-            <label htmlFor="contact_type">Contact Type</label>
-            <Dropdown
-              value={editIssue.contact_type}
-              options={contactTypeOptions}
-              onChange={(e) =>
-                setEditIssue({ ...editIssue, contact_type: e.value })
-              }
-              placeholder="Select Contact Type"
-            />
-          </div>
         </div>
 
         <div className="formgrid grid">
-          <div className="field col">
-            <label htmlFor="contact_value">Contact Value</label>
-            <InputText
-              value={editIssue.contact_value || ""}
-              onChange={(e) =>
-                setEditIssue({ ...editIssue, contact_value: e.target.value })
-              }
-            />
-          </div>
           <div className="field col">
             <label htmlFor="related_to_indicators">Related to Indicator</label>
             <Dropdown
