@@ -34,7 +34,7 @@ const DashboardComp = () => {
   const [issues, setIssues] = useState([]);
   const [filters, setFilters] = useState({ status: null, responsibility: null, keyword: "" });
   const [issueDialog, setIssueDialog] = useState(false);
-  const [newIssue, setNewIssue] = useState({ description: "", status: "open", responsibility: "low", severity: "not important", assigned_to: user?.name, started_by: user?.name, petitioner_name: "", related_to_indicators: "no", indicator_code: "", organizations_id: null, startDate: null, endDate: null, user_id: user?.id, category_id: null, solution_id: null, solution_title: "", solution_desc: "" }); // prefill with same structure as editIssue
+  const [newIssue, setNewIssue] = useState({ description: "", status: "open", responsibility: "low", severity: "not important", assigned_to: user?.name, started_by: user?.name, role_in_the_organization: "", related_to_indicators: "no", indicator_code: "", organizations_id: null, startDate: null, endDate: null, user_id: user?.id, category_id: null, solution_id: null, solution_title: "", solution_desc: "" }); // prefill with same structure as editIssue
   const [loading, setLoading] = useState(true);
   const [editDialogVisible, setEditDialogVisible] = useState(false);
   const [currentIssueId, setCurrentIssueId] = useState(null);
@@ -51,7 +51,7 @@ const DashboardComp = () => {
   description: { value: null, matchMode: FilterMatchMode.CONTAINS },
   started_by: { value: null, matchMode: FilterMatchMode.CONTAINS },
   assigned_to: { value: null, matchMode: FilterMatchMode.CONTAINS },
-  petitioner_name: { value: null, matchMode: FilterMatchMode.CONTAINS },
+  role_in_the_organization: { value: null, matchMode: FilterMatchMode.CONTAINS },
   severity: { value: null, matchMode: FilterMatchMode.EQUALS },
   related_to_indicators: { value: null, matchMode: FilterMatchMode.EQUALS },
   indicator_code: { value: null, matchMode: FilterMatchMode.EQUALS },
@@ -384,7 +384,7 @@ const indicatorOptions = indicators.map(ind => ({
   ///////////////////
 
   const statusOptions = ["open", "in-progress", "resolved", "unresolved"].map(s => ({ label: s.charAt(0).toUpperCase() + s.slice(1), value: s }));
-  const responsibilityOptions = ["User", "Organization", "System"].map(p => ({ label: p.charAt(0).toUpperCase() + p.slice(1), value: p }));
+  const responsibilityOptions = ["User", "Organization", "System", "MoH", "ΥΠΕ"].map(p => ({ label: p.charAt(0).toUpperCase() + p.slice(1), value: p }));
   const severityOptions = ["important", "not important", "critical"].map(p => ({ label: p.charAt(0).toUpperCase() + p.slice(1), value: p }));
 
   const confirmDeleteIssue = (issueId) => {
@@ -550,7 +550,7 @@ const indicatorOptions = indicators.map(ind => ({
         responsibility: newIssue.responsibility,
         started_by: newIssue.started_by,
         assigned_to: newIssue.assigned_to,
-        petitioner_name: newIssue.petitioner_name,
+        role_in_the_organization: newIssue.role_in_the_organization,
         related_to_indicators: newIssue.related_to_indicators,
         indicator_code: newIssue.indicator_code,
         organizations_id: newIssue.organizations_id,
@@ -873,7 +873,7 @@ const renderKPIs = () => {
           "started_by",
           "severity",
           "assigned_to",
-          "petitioner_name",
+          "role_in_the_organization",
           "related_to_indicators",
           "indicator_code",
           "organization.id",
@@ -937,10 +937,10 @@ const renderKPIs = () => {
           body={(rowData) => rowData.assigned_to || user?.name}
         />
         <Column
-          field="petitioner_name"
-          header="Petitioner"
+          field="role_in_the_organization"
+          header="Role in the Organization"
           filter
-          filterPlaceholder="Search by petitioner"
+          filterPlaceholder="Search by Role in the Organization"
           style={{ minWidth: "10rem" }}
         />
         <Column
@@ -1019,6 +1019,7 @@ const renderKPIs = () => {
           <label htmlFor="description">Description</label>
           <InputTextarea
             id="description"
+            autoFocus 
             value={newIssue.description}
             onChange={(e) =>
               setNewIssue({ ...newIssue, description: e.target.value })
@@ -1103,12 +1104,12 @@ const renderKPIs = () => {
 
         <div className="formgrid grid">
           <div className="field col">
-            <label htmlFor="petitioner_name">Petitioner Name</label>
+            <label htmlFor="role_in_the_organization">Role In The Organization</label>
             <InputText
-              id="petitioner_name"
-              value={newIssue.petitioner_name}
+              id="role_in_the_organization"
+              value={newIssue.role_in_the_organization}
               onChange={(e) =>
-                setNewIssue({ ...newIssue, petitioner_name: e.target.value })
+                setNewIssue({ ...newIssue, role_in_the_organization: e.target.value })
               }
             />
           </div>
@@ -1240,7 +1241,7 @@ const renderKPIs = () => {
             className="p-button-text mr-2"
             onClick={() => setIssueDialog(false)}
           />
-          <Button label="Add" icon="pi pi-check" onClick={addIssue} autoFocus 
+          <Button label="Add" icon="pi pi-check" onClick={addIssue} 
           disabled={ (newIssue.status ==="resolved" && newIssue.endDate===null) || (newIssue.status ==="unresolved" && newIssue.endDate===null)}
           />
         </div>
@@ -1261,6 +1262,7 @@ const renderKPIs = () => {
           <label htmlFor="description">Description</label>
           <InputTextarea
             id="description"
+            autoFocus 
             value={editIssue.description || ""}
             onChange={(e) =>
               setEditIssue({ ...editIssue, description: e.target.value })
@@ -1342,11 +1344,11 @@ const renderKPIs = () => {
 
         <div className="formgrid grid">
           <div className="field col">
-            <label htmlFor="petitioner_name">Petitioner Name</label>
+            <label htmlFor="role_in_the_organization">Role in the Organization</label>
             <InputText
-              value={editIssue.petitioner_name || ""}
+              value={editIssue.role_in_the_organization || ""}
               onChange={(e) =>
-                setEditIssue({ ...editIssue, petitioner_name: e.target.value })
+                setEditIssue({ ...editIssue, role_in_the_organization: e.target.value })
               }
             />
           </div>
@@ -1487,7 +1489,6 @@ const renderKPIs = () => {
             label="Update"
             icon="pi pi-check"
             onClick={updateIssue}
-            autoFocus
             disabled={(editIssue.status ==="resolved" && editIssue.endDate===null) || (editIssue.status ==="unresolved" && editIssue.endDate===null)}
           />
         </div>
