@@ -34,7 +34,7 @@ const DashboardComp = () => {
   const [issues, setIssues] = useState([]);
   const [filters, setFilters] = useState({ status: null, responsibility: null, keyword: "" });
   const [issueDialog, setIssueDialog] = useState(false);
-  const [newIssue, setNewIssue] = useState({ description: "", status: "open", responsibility: "low", severity: "not important", assigned_to: user?.name, started_by: user?.name, role_in_the_organization: "", related_to_indicators: "no", indicator_code: "", organizations_id: null, startDate: null, endDate: null, user_id: user?.id, category_id: null, solution_id: null, solution_title: "", solution_desc: "" }); // prefill with same structure as editIssue
+  const [newIssue, setNewIssue] = useState({ description: "", impact: "", status: "open", responsibility: "low", severity: "not important", assigned_to: user?.name, started_by: user?.name, role_in_the_organization: "", related_to_indicators: "no", indicator_code: "", organizations_id: null, startDate: null, endDate: null, user_id: user?.id, category_id: null, solution_id: null, solution_title: "", solution_desc: "" }); // prefill with same structure as editIssue
   const [loading, setLoading] = useState(true);
   const [editDialogVisible, setEditDialogVisible] = useState(false);
   const [currentIssueId, setCurrentIssueId] = useState(null);
@@ -49,6 +49,7 @@ const DashboardComp = () => {
   status: { value: null, matchMode: FilterMatchMode.EQUALS },
   responsibility: { value: null, matchMode: FilterMatchMode.EQUALS },
   description: { value: null, matchMode: FilterMatchMode.CONTAINS },
+  impact: { value: null, matchMode: FilterMatchMode.CONTAINS },
   started_by: { value: null, matchMode: FilterMatchMode.CONTAINS },
   assigned_to: { value: null, matchMode: FilterMatchMode.CONTAINS },
   role_in_the_organization: { value: null, matchMode: FilterMatchMode.CONTAINS },
@@ -384,7 +385,7 @@ const indicatorOptions = indicators.map(ind => ({
   ///////////////////
 
   const statusOptions = ["open", "in-progress", "resolved", "unresolved"].map(s => ({ label: s.charAt(0).toUpperCase() + s.slice(1), value: s }));
-  const responsibilityOptions = ["User", "Organization", "System", "MoH", "ΥΠΕ"].map(p => ({ label: p.charAt(0).toUpperCase() + p.slice(1), value: p }));
+  const responsibilityOptions = ["User", "Organization", "System", "MoH", "RHA"].map(p => ({ label: p.charAt(0).toUpperCase() + p.slice(1), value: p }));
   const severityOptions = ["important", "not important", "critical"].map(p => ({ label: p.charAt(0).toUpperCase() + p.slice(1), value: p }));
 
   const confirmDeleteIssue = (issueId) => {
@@ -546,6 +547,7 @@ const indicatorOptions = indicators.map(ind => ({
       // 2. Create the issue
       await axios.post(`${apiBaseUrl}/issues`, {
         description: newIssue.description,
+        impact: newIssue.impact,
         status: newIssue.status,
         responsibility: newIssue.responsibility,
         started_by: newIssue.started_by,
@@ -868,6 +870,7 @@ const renderKPIs = () => {
         onFilter={(e) => setTableFilters(e.filters)}
         globalFilterFields={[
           "description",
+          "impact",
           "status",
           "responsibility",
           "started_by",
@@ -892,6 +895,13 @@ const renderKPIs = () => {
           header="Description"
           filter
           filterPlaceholder="Search by description"
+          style={{ minWidth: "12rem" }}
+        />
+        <Column
+          field="impact"
+          header="Impact"
+          filter
+          filterPlaceholder="Search by impact"
           style={{ minWidth: "12rem" }}
         />
         <Column
@@ -1023,6 +1033,20 @@ const renderKPIs = () => {
             value={newIssue.description}
             onChange={(e) =>
               setNewIssue({ ...newIssue, description: e.target.value })
+            }
+            rows={3}
+            required
+          />
+        </div>
+
+        <div className="field">
+          <label htmlFor="impact">Impact</label>
+          <InputTextarea
+            id="impact"
+            autoFocus 
+            value={newIssue.impact}
+            onChange={(e) =>
+              setNewIssue({ ...newIssue, impact: e.target.value })
             }
             rows={3}
             required
@@ -1266,6 +1290,19 @@ const renderKPIs = () => {
             value={editIssue.description || ""}
             onChange={(e) =>
               setEditIssue({ ...editIssue, description: e.target.value })
+            }
+            rows={3}
+          />
+        </div>
+
+        <div className="field">
+          <label htmlFor="impact">Impact</label>
+          <InputTextarea
+            id="impact"
+            autoFocus 
+            value={editIssue.impact || ""}
+            onChange={(e) =>
+              setEditIssue({ ...editIssue, impact: e.target.value })
             }
             rows={3}
           />
