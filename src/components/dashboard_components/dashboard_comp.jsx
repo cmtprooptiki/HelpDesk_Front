@@ -34,7 +34,28 @@ const DashboardComp = () => {
   const [issues, setIssues] = useState([]);
   const [filters, setFilters] = useState({ status: null, responsibility: null, keyword: "" });
   const [issueDialog, setIssueDialog] = useState(false);
-  const [newIssue, setNewIssue] = useState({ description: "", impact: "", status: "open", responsibility: "low", severity: "not important", assigned_to: user?.name, started_by: user?.name, role_in_the_organization: "", related_to_indicators: "no", indicator_code: "", organizations_id: null, startDate: null, endDate: null, user_id: user?.id, category_id: null, solution_id: null, solution_title: "", solution_desc: "" }); // prefill with same structure as editIssue
+  const getInitialNewIssue = () => ({
+  description: "",
+  impact: "",
+  status: "open",
+  responsibility: "low",
+  severity: "not important",
+  assigned_to: user?.name,
+  started_by: user?.name,
+  role_in_the_organization: "",
+  related_to_indicators: "No",
+  indicator_code: "",
+  organizations_id: null,
+  startDate: null,
+  endDate: null,
+  user_id: user?.id,
+  category_id: null,
+  solution_id: null,
+  solution_title: "",
+  solution_desc: "",
+});
+
+  const [newIssue, setNewIssue] = useState(getInitialNewIssue);
   const [loading, setLoading] = useState(true);
   const [editDialogVisible, setEditDialogVisible] = useState(false);
   const [currentIssueId, setCurrentIssueId] = useState(null);
@@ -69,6 +90,7 @@ const [selectedSolution, setSelectedSolution] = useState({ title: "", desc: "" }
 const [indicatorFilterOptions, setIndicatorFilterOptions] = useState([]);
 const [filteredOrganizationOptions, setFilteredOrganizationOptions] = useState([]);
 const [filteredCategoryOptions, setFilteredCategoryOptions] = useState([]);
+
 
 const toast = useRef(null);
 
@@ -291,6 +313,63 @@ const indicatorOptions = indicators.map(ind => ({
         }
         
     }
+
+    const handleDuplicateIssue = async (rowData) => {
+  try {
+    // Optional: fetch full issue from API in case table row is partial
+    const response = await axios.get(`${apiBaseUrl}/issues/${rowData.id}`);
+    const issue = response.data;
+
+    let solutionTitle = "";
+    let solutionDesc = "";
+
+    // If duplicated issue has linked solution, preload it too
+    if (issue.solution_id) {
+      try {
+        const solRes = await axios.get(`${apiBaseUrl}/solutions/${issue.solution_id}`);
+        solutionTitle = solRes.data.solution_title || "";
+        solutionDesc = solRes.data.solution_desc || "";
+      } catch (err) {
+        console.error("Failed to fetch linked solution for duplicate:", err);
+      }
+    }
+
+    setNewIssue({
+      description: issue.description || "",
+      impact: issue.impact || "",
+      status: issue.status || "open",
+      responsibility: issue.responsibility || "User",
+      severity: issue.severity || "not important",
+      assigned_to: issue.assigned_to || user?.name,
+      started_by: user?.name, // start new duplicated issue from current user
+      role_in_the_organization: issue.role_in_the_organization || "",
+      related_to_indicators: issue.related_to_indicators || "No",
+      indicator_code: issue.indicator_code || "",
+      organizations_id: issue.organizations_id ?? issue.organization?.id ?? null,
+      startDate: issue.startDate ? new Date(issue.startDate) : null,
+      endDate:
+        issue.status === "resolved" || issue.status === "unresolved"
+          ? (issue.endDate ? new Date(issue.endDate) : null)
+          : null,
+      user_id:
+        users.find((u) => u.name === issue.assigned_to)?.id || user?.id || null,
+      category_id: issue.category_id ?? issue.category?.id ?? null,
+      solution_id: null, // create a NEW solution if saved, do not reuse old one
+      solution_title: solutionTitle,
+      solution_desc: solutionDesc,
+    });
+
+    setIssueDialog(true);
+  } catch (error) {
+    console.error("Failed to duplicate issue:", error);
+    toast.current?.show({
+      severity: "error",
+      summary: "Error",
+      detail: "Could not prepare duplicate issue.",
+      life: 3000,
+    });
+  }
+};
 
     const getIssuesByUser = async() =>{
         try {
@@ -565,7 +644,14 @@ const indicatorOptions = indicators.map(ind => ({
       });
 
       setIssueDialog(false);
-      window.location.reload();
+      setNewIssue(getInitialNewIssue());
+      user.role === "user" ? getIssuesByUser() : getIssues();
+      toast.current?.show({
+        severity: "success",
+        summary: "Success",
+        detail: "Issue duplicated/created successfully.",
+        life: 3000,
+      });
     } catch (error) {
       console.error("Failed to add issue:", error.message);
       alert("Failed to add issue. Check console for details.");
@@ -605,6 +691,14 @@ const indicatorOptions = indicators.map(ind => ({
                 aria-label="Εdit"
                 onClick={() => openEditDialog(id)}
               />
+              <Button
+          className="action-button"
+          outlined
+          icon="pi pi-copy"
+          severity="secondary"
+          onClick={() => handleDuplicateIssue(rowData)}
+          tooltip="Duplicate"
+        />
               <Button
                 className="action-button"
                 outlined
@@ -825,7 +919,10 @@ const renderKPIs = () => {
         <Button
           label="New Issue"
           icon="pi pi-plus"
-          onClick={() => setIssueDialog(true)}
+          onClick={() => {
+            setNewIssue(getInitialNewIssue());
+            setIssueDialog(true);
+          }}
         />
       </div>
       {renderKPIs()} {/* <-- Add this line here */}
