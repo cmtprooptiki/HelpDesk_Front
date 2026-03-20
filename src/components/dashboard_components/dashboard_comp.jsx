@@ -44,7 +44,7 @@ const DashboardComp = () => {
   started_by: user?.name,
   role_in_the_organization: "",
   related_to_indicators: "No",
-  indicator_code: "",
+  indicator_code: [],
   organizations_id: null,
   startDate: null,
   endDate: null,
@@ -56,6 +56,7 @@ const DashboardComp = () => {
 });
 
   const [newIssue, setNewIssue] = useState(getInitialNewIssue);
+
   const [loading, setLoading] = useState(true);
   const [editDialogVisible, setEditDialogVisible] = useState(false);
   const [currentIssueId, setCurrentIssueId] = useState(null);
@@ -76,7 +77,7 @@ const DashboardComp = () => {
   role_in_the_organization: { value: null, matchMode: FilterMatchMode.CONTAINS },
   severity: { value: null, matchMode: FilterMatchMode.EQUALS },
   related_to_indicators: { value: null, matchMode: FilterMatchMode.EQUALS },
-  indicator_code: { value: null, matchMode: FilterMatchMode.EQUALS },
+  indicator_code: { value: null, matchMode: FilterMatchMode.CONTAINS },
   'organization.id': { value: null, matchMode: FilterMatchMode.EQUALS },
   'category.id': { value: null, matchMode: FilterMatchMode.EQUALS },
   startDate: { value: null, matchMode: FilterMatchMode.DATE_IS },
@@ -90,7 +91,6 @@ const [selectedSolution, setSelectedSolution] = useState({ title: "", desc: "" }
 const [indicatorFilterOptions, setIndicatorFilterOptions] = useState([]);
 const [filteredOrganizationOptions, setFilteredOrganizationOptions] = useState([]);
 const [filteredCategoryOptions, setFilteredCategoryOptions] = useState([]);
-
 
 const toast = useRef(null);
 
@@ -241,12 +241,16 @@ const indicatorOptions = indicators.map(ind => ({
           setIssues(issuesWithDates);
 
           const uniqueUsedIndicatorCodes = [
-            ...new Set(
-              response.data
-                .map((issue) => issue.indicator_code)
-                .filter((code) => code)
-            ),
-          ];
+  ...new Set(
+    response.data
+      .flatMap((issue) =>
+        issue.indicator_code
+          ? issue.indicator_code.split(",").map((code) => code.trim())
+          : []
+      )
+      .filter((code) => code)
+  ),
+];
 
           const usedIndicatorOptions = uniqueUsedIndicatorCodes.map((code) => ({
             label: code,
@@ -314,7 +318,7 @@ const indicatorOptions = indicators.map(ind => ({
         
     }
 
-    const handleDuplicateIssue = async (rowData) => {
+        const handleDuplicateIssue = async (rowData) => {
   try {
     // Optional: fetch full issue from API in case table row is partial
     const response = await axios.get(`${apiBaseUrl}/issues/${rowData.id}`);
@@ -344,7 +348,7 @@ const indicatorOptions = indicators.map(ind => ({
       started_by: user?.name, // start new duplicated issue from current user
       role_in_the_organization: issue.role_in_the_organization || "",
       related_to_indicators: issue.related_to_indicators || "No",
-      indicator_code: issue.indicator_code || "",
+      indicator_code: issue.indicator_code ? issue.indicator_code.split(",").map((code) => code.trim()) : [],
       organizations_id: issue.organizations_id ?? issue.organization?.id ?? null,
       startDate: issue.startDate ? new Date(issue.startDate) : null,
       endDate:
@@ -371,6 +375,8 @@ const indicatorOptions = indicators.map(ind => ({
   }
 };
 
+
+
     const getIssuesByUser = async() =>{
         try {
           const response = await axios.get(
@@ -386,12 +392,16 @@ const indicatorOptions = indicators.map(ind => ({
           setIssues(issuesWithDates);
 
           const uniqueUsedIndicatorCodes = [
-            ...new Set(
-              response.data
-                .map((issue) => issue.indicator_code)
-                .filter((code) => code)
-            ),
-          ];
+  ...new Set(
+    response.data
+      .flatMap((issue) =>
+        issue.indicator_code
+          ? issue.indicator_code.split(",").map((code) => code.trim())
+          : []
+      )
+      .filter((code) => code)
+  ),
+];
 
           const usedIndicatorOptions = uniqueUsedIndicatorCodes.map((code) => ({
             label: code,
@@ -517,7 +527,14 @@ const indicatorOptions = indicators.map(ind => ({
       const response = await axios.get(`${apiBaseUrl}/issues/${id}`);
       const issue = response.data;
 
-      setEditIssue(issue);
+      setEditIssue({
+      ...issue,
+      indicator_code: Array.isArray(issue.indicator_code)
+        ? issue.indicator_code
+        : issue.indicator_code
+        ? issue.indicator_code.split(",").map((item) => item.trim())
+        : [],
+    });
       setCurrentIssueId(id);
       setEditDialogVisible(true);
 
@@ -576,6 +593,12 @@ const indicatorOptions = indicators.map(ind => ({
        // 2. Update the issue with (possibly) new solution_id
        await axios.patch(`${apiBaseUrl}/issues/${currentIssueId}`, {
          ...editIssue,
+         indicator_code:
+    editIssue.related_to_indicators === "Yes"
+      ? Array.isArray(editIssue.indicator_code)
+        ? editIssue.indicator_code.join(", ")
+        : editIssue.indicator_code || ""
+      : "",
          solution_id: solutionId || null,
        });
 
@@ -633,7 +656,9 @@ const indicatorOptions = indicators.map(ind => ({
         assigned_to: newIssue.assigned_to,
         role_in_the_organization: newIssue.role_in_the_organization,
         related_to_indicators: newIssue.related_to_indicators,
-        indicator_code: newIssue.indicator_code,
+        indicator_code: Array.isArray(newIssue.indicator_code)
+  ? newIssue.indicator_code.join(", ")
+  : newIssue.indicator_code || "",
         organizations_id: newIssue.organizations_id,
         severity: newIssue.severity,
         category_id: newIssue.category_id,
@@ -652,6 +677,7 @@ const indicatorOptions = indicators.map(ind => ({
         detail: "Issue duplicated/created successfully.",
         life: 3000,
       });
+
     } catch (error) {
       console.error("Failed to add issue:", error.message);
       alert("Failed to add issue. Check console for details.");
@@ -691,14 +717,14 @@ const indicatorOptions = indicators.map(ind => ({
                 aria-label="Εdit"
                 onClick={() => openEditDialog(id)}
               />
-              <Button
-          className="action-button"
-          outlined
-          icon="pi pi-copy"
-          severity="secondary"
-          onClick={() => handleDuplicateIssue(rowData)}
-          tooltip="Duplicate"
-        />
+              <Button className="action-button"
+                outlined
+                icon="pi pi-copy"
+                severity="secondary"
+                onClick={() => handleDuplicateIssue(rowData)}
+                tooltip="Duplicate"
+              />
+
               <Button
                 className="action-button"
                 outlined
@@ -923,6 +949,7 @@ const renderKPIs = () => {
             setNewIssue(getInitialNewIssue());
             setIssueDialog(true);
           }}
+
         />
       </div>
       {renderKPIs()} {/* <-- Add this line here */}
@@ -1058,12 +1085,17 @@ const renderKPIs = () => {
           filterElement={relatedToIndicatorsFilterTemplate}
         />
         <Column
-          field="indicator_code"
-          header="Indicator Code"
-          style={{ minWidth: "10rem" }}
-          filter
-          filterElement={indicatorOptionsFilterTemplate}
-        />
+  field="indicator_code"
+  header="Indicator Code"
+  style={{ minWidth: "10rem" }}
+  body={(rowData) =>
+    Array.isArray(rowData.indicator_code)
+      ? rowData.indicator_code.join(", ")
+      : rowData.indicator_code || ""
+  }
+  filter
+  filterElement={indicatorOptionsFilterTemplate}
+/>
         <Column
           field="organization.id" // filter by ID
           header="Organization"
@@ -1259,21 +1291,24 @@ const renderKPIs = () => {
         </div>
 
         {newIssue.related_to_indicators === "Yes" && (
-          <div className="field">
-            <label htmlFor="indicator_code">Indicator Code</label>
-            <Dropdown
-              value={newIssue.indicator_code}
-              options={indicatorOptions}
-              onChange={(e) =>
-                setNewIssue({ ...newIssue, indicator_code: e.value })
-              }
-              placeholder="Select Indicator Code"
-              filter
-              showClear
-              filterBy="label"
-            />
-          </div>
-        )}
+  <div className="field">
+    <label htmlFor="indicator_code">Indicator Code</label>
+    <MultiSelect
+      id="indicator_code"
+      value={newIssue.indicator_code}
+      options={indicatorOptions}
+      onChange={(e) =>
+        setNewIssue({ ...newIssue, indicator_code: e.value })
+      }
+      placeholder="Select Indicator Code"
+      filter
+      showClear
+      optionLabel="label"
+      optionValue="value"
+      display="chip"
+    />
+  </div>
+)}
 
         <div className="field">
           <label htmlFor="category">Category</label>
@@ -1511,21 +1546,24 @@ const renderKPIs = () => {
         </div>
 
         {editIssue.related_to_indicators === "Yes" && (
-          <div className="field">
-            <label htmlFor="indicator_code">Indicator Code</label>
-            <Dropdown
-              value={editIssue.indicator_code}
-              options={indicatorOptions}
-              onChange={(e) =>
-                setEditIssue({ ...editIssue, indicator_code: e.value })
-              }
-              placeholder="Select Indicator Code"
-              filter
-              showClear
-              filterBy="label"
-            />
-          </div>
-        )}
+  <div className="field">
+    <label htmlFor="indicator_code">Indicator Code</label>
+    <MultiSelect
+      id="indicator_code"
+      value={editIssue.indicator_code}
+      options={indicatorOptions}
+      onChange={(e) =>
+        setEditIssue({ ...editIssue, indicator_code: e.value })
+      }
+      placeholder="Select Indicator Code"
+      filter
+      showClear
+      optionLabel="label"
+      optionValue="value"
+      display="chip"
+    />
+  </div>
+)}
 
         <div className="field">
           <label htmlFor="category">Category</label>
